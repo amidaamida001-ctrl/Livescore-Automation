@@ -1,0 +1,24 @@
+services:
+  n8n:
+    # Self-hosted n8n Community Edition for the LiveScore automation project.
+    image: docker.n8n.io/n8nio/n8n:2.46.7
+    container_name: livescore-n8n
+    restart: unless-stopped
+
+    ports:
+      # Bind only to localhost so the editor is not exposed to the local network.
+      - "127.0.0.1:5678:5678"
+
+    environment:
+      # Timezone and n8n runtime settings for local development.
+      TZ: Africa/Lagos
+      GENERIC_TIMEZONE: Africa/Lagos
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+
+    volumes:
+      # Persist n8n configuration and SQLite data in a named Docker volume.
+      - livescore_n8n_data:/home/node/.n8n
+
+volumes:
+  livescore_n8n_data:
+    driver: local

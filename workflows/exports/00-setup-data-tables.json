@@ -1,0 +1,496 @@
+{
+  "name": "SETUP - Create Prediction Data Tables",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f90496d5-c67d-4c46-9e03-a0509e1d6001",
+      "name": "Start Table Setup",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "list",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "f90496d5-c67d-4c46-9e03-a0509e1d6002",
+      "name": "List Existing Tables",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "alwaysOutputData": true,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const existing = $input.all().map(item => item.json).filter(row => typeof row.name === 'string');\nconst expected = {\n  team_strengths: [['team_key','string'],['league_id','number'],['season','number'],['team_id','number'],['team_name','string'],['home_played','number'],['home_goals_for','number'],['home_goals_against','number'],['away_played','number'],['away_goals_for','number'],['away_goals_against','number'],['updated_at','date']],\n  league_strengths: [['league_key','string'],['league_id','number'],['season','number'],['league_home_avg','number'],['league_away_avg','number'],['matches_used','number'],['updated_at','date']],\n  prediction_log: [['prediction_key','string'],['fixture_id','number'],['model_version','string'],['league_id','number'],['league_name','string'],['fixture_season','number'],['strength_season','number'],['match_date','date'],['home_team_id','number'],['home_team_name','string'],['away_team_id','number'],['away_team_name','string'],['lambda_home','number'],['lambda_away','number'],['top_score','string'],['top_scores_json','string'],['home_win_prob','number'],['draw_prob','number'],['away_win_prob','number'],['grid_max_goals','number'],['grid_mass','number'],['residual_prob','number'],['home_team_home_played','number'],['away_team_away_played','number'],['home_attack_strength','number'],['home_defence_weakness','number'],['away_attack_strength','number'],['away_defence_weakness','number'],['league_home_avg','number'],['league_away_avg','number'],['team_strengths_updated_at','date'],['league_strengths_updated_at','date'],['status','string'],['predicted_at','date'],['attempt_count','number'],['last_attempt_at','date'],['sent_at','date'],['telegram_message_id','string'],['error_message','string'],['actual_home_goals','number'],['actual_away_goals','number'],['actual_match_status','string'],['actual_outcome','string'],['actual_score_probability','number'],['brier_1x2','number'],['top3_hit','boolean'],['evaluated_at','date']]\n};\nconst missing = [];\nfor (const [name, columns] of Object.entries(expected)) {\n  const table = existing.find(row => row.name === name);\n  if (!table) { missing.push(name); continue; }\n  const actual = (table.columns || []).map(column => [column.name, column.type]).sort((a,b) => a[0].localeCompare(b[0]));\n  const wanted = columns.map(column => [...column]).sort((a,b) => a[0].localeCompare(b[0]));\n  if (JSON.stringify(actual) !== JSON.stringify(wanted)) {\n    throw new Error(`Existing table ${name} has a different schema. No tables were created; inspect it manually and preserve its rows.`);\n  }\n}\nreturn [{ json: { preflightPassed: true, existingMatchingTables: expected ? Object.keys(expected).filter(name => existing.some(row => row.name === name)) : [], missingTables: missing } }];"
+      },
+      "id": "f90496d5-c67d-4c46-9e03-a0509e1d6003",
+      "name": "Preflight Existing Schemas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "team_strengths",
+        "columns": {
+          "column": [
+            {
+              "name": "team_key",
+              "type": "string"
+            },
+            {
+              "name": "league_id",
+              "type": "number"
+            },
+            {
+              "name": "season",
+              "type": "number"
+            },
+            {
+              "name": "team_id",
+              "type": "number"
+            },
+            {
+              "name": "team_name",
+              "type": "string"
+            },
+            {
+              "name": "home_played",
+              "type": "number"
+            },
+            {
+              "name": "home_goals_for",
+              "type": "number"
+            },
+            {
+              "name": "home_goals_against",
+              "type": "number"
+            },
+            {
+              "name": "away_played",
+              "type": "number"
+            },
+            {
+              "name": "away_goals_for",
+              "type": "number"
+            },
+            {
+              "name": "away_goals_against",
+              "type": "number"
+            },
+            {
+              "name": "updated_at",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f90496d5-c67d-4c46-9e03-a0509e1d6004",
+      "name": "Create or Reuse team_strengths",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "league_strengths",
+        "columns": {
+          "column": [
+            {
+              "name": "league_key",
+              "type": "string"
+            },
+            {
+              "name": "league_id",
+              "type": "number"
+            },
+            {
+              "name": "season",
+              "type": "number"
+            },
+            {
+              "name": "league_home_avg",
+              "type": "number"
+            },
+            {
+              "name": "league_away_avg",
+              "type": "number"
+            },
+            {
+              "name": "matches_used",
+              "type": "number"
+            },
+            {
+              "name": "updated_at",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f90496d5-c67d-4c46-9e03-a0509e1d6005",
+      "name": "Create or Reuse league_strengths",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1190,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "prediction_log",
+        "columns": {
+          "column": [
+            {
+              "name": "prediction_key",
+              "type": "string"
+            },
+            {
+              "name": "fixture_id",
+              "type": "number"
+            },
+            {
+              "name": "model_version",
+              "type": "string"
+            },
+            {
+              "name": "league_id",
+              "type": "number"
+            },
+            {
+              "name": "league_name",
+              "type": "string"
+            },
+            {
+              "name": "fixture_season",
+              "type": "number"
+            },
+            {
+              "name": "strength_season",
+              "type": "number"
+            },
+            {
+              "name": "match_date",
+              "type": "date"
+            },
+            {
+              "name": "home_team_id",
+              "type": "number"
+            },
+            {
+              "name": "home_team_name",
+              "type": "string"
+            },
+            {
+              "name": "away_team_id",
+              "type": "number"
+            },
+            {
+              "name": "away_team_name",
+              "type": "string"
+            },
+            {
+              "name": "lambda_home",
+              "type": "number"
+            },
+            {
+              "name": "lambda_away",
+              "type": "number"
+            },
+            {
+              "name": "top_score",
+              "type": "string"
+            },
+            {
+              "name": "top_scores_json",
+              "type": "string"
+            },
+            {
+              "name": "home_win_prob",
+              "type": "number"
+            },
+            {
+              "name": "draw_prob",
+              "type": "number"
+            },
+            {
+              "name": "away_win_prob",
+              "type": "number"
+            },
+            {
+              "name": "grid_max_goals",
+              "type": "number"
+            },
+            {
+              "name": "grid_mass",
+              "type": "number"
+            },
+            {
+              "name": "residual_prob",
+              "type": "number"
+            },
+            {
+              "name": "home_team_home_played",
+              "type": "number"
+            },
+            {
+              "name": "away_team_away_played",
+              "type": "number"
+            },
+            {
+              "name": "home_attack_strength",
+              "type": "number"
+            },
+            {
+              "name": "home_defence_weakness",
+              "type": "number"
+            },
+            {
+              "name": "away_attack_strength",
+              "type": "number"
+            },
+            {
+              "name": "away_defence_weakness",
+              "type": "number"
+            },
+            {
+              "name": "league_home_avg",
+              "type": "number"
+            },
+            {
+              "name": "league_away_avg",
+              "type": "number"
+            },
+            {
+              "name": "team_strengths_updated_at",
+              "type": "date"
+            },
+            {
+              "name": "league_strengths_updated_at",
+              "type": "date"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "predicted_at",
+              "type": "date"
+            },
+            {
+              "name": "attempt_count",
+              "type": "number"
+            },
+            {
+              "name": "last_attempt_at",
+              "type": "date"
+            },
+            {
+              "name": "sent_at",
+              "type": "date"
+            },
+            {
+              "name": "telegram_message_id",
+              "type": "string"
+            },
+            {
+              "name": "error_message",
+              "type": "string"
+            },
+            {
+              "name": "actual_home_goals",
+              "type": "number"
+            },
+            {
+              "name": "actual_away_goals",
+              "type": "number"
+            },
+            {
+              "name": "actual_match_status",
+              "type": "string"
+            },
+            {
+              "name": "actual_outcome",
+              "type": "string"
+            },
+            {
+              "name": "actual_score_probability",
+              "type": "number"
+            },
+            {
+              "name": "brier_1x2",
+              "type": "number"
+            },
+            {
+              "name": "top3_hit",
+              "type": "boolean"
+            },
+            {
+              "name": "evaluated_at",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f90496d5-c67d-4c46-9e03-a0509e1d6006",
+      "name": "Create or Reuse prediction_log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "list",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "f90496d5-c67d-4c46-9e03-a0509e1d6007",
+      "name": "Verify Data Tables",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const tables = $input.all().map(item => item.json);\nconst expected = { team_strengths: 12, league_strengths: 7, prediction_log: 47 };\nfor (const [name, count] of Object.entries(expected)) {\n  const table = tables.find(row => row.name === name);\n  if (!table) throw new Error(`Setup did not produce table ${name}.`);\n  if (!Array.isArray(table.columns) || table.columns.length !== count) throw new Error(`Table ${name} has ${table.columns?.length ?? 0} columns; expected ${count}.`);\n}\nreturn [{ json: { setup: 'verified', tables: Object.entries(expected).map(([name, column_count]) => ({ name, column_count })) } }];"
+      },
+      "id": "f90496d5-c67d-4c46-9e03-a0509e1d6008",
+      "name": "Verify Table Schemas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Start Table Setup": {
+      "main": [
+        [
+          {
+            "node": "List Existing Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Existing Tables": {
+      "main": [
+        [
+          {
+            "node": "Preflight Existing Schemas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preflight Existing Schemas": {
+      "main": [
+        [
+          {
+            "node": "Create or Reuse team_strengths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or Reuse team_strengths": {
+      "main": [
+        [
+          {
+            "node": "Create or Reuse league_strengths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or Reuse league_strengths": {
+      "main": [
+        [
+          {
+            "node": "Create or Reuse prediction_log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or Reuse prediction_log": {
+      "main": [
+        [
+          {
+            "node": "Verify Data Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Data Tables": {
+      "main": [
+        [
+          {
+            "node": "Verify Table Schemas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "f90496d5-c67d-4c46-9e03-a0509e1d6009",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

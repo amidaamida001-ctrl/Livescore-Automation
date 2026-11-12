@@ -1,0 +1,17 @@
+[
+  {
+    "prediction_key": "3003|poisson-v1",
+    "fixture_id": 3003,
+    "model_version": "poisson-v1",
+    "status": "sent",
+    "predicted_at": "2026-11-12T00:00:00.000Z"
+  },
+  {
+    "prediction_key": "3004|poisson-v1",
+    "fixture_id": 3004,
+    "model_version": "poisson-v1",
+    "status": "failed",
+    "predicted_at": "2026-11-12T00:00:00.000Z",
+    "error_message": "simulated delivery failure"
+  }
+]

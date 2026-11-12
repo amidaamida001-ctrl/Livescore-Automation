@@ -12,11 +12,11 @@ Retrieve completed historical fixtures from API-Football, inspect and validate e
 
 Retrieve upcoming fixtures, validate and normalise them, then join each home and away team to stored strengths using numeric team IDs and retrieve the matching league/season averages. Estimate expected goals, calculate scoreline probabilities with the Poisson baseline, rank the top three scorelines, derive home/draw/away probabilities, format a Telegram prediction, check the intended fixture/model duplicate key, send, and record the prediction for later evaluation.
 
-Separate workflows allow historical data refresh and prediction runs to have independent schedules, failure handling, and review. Workflow B consumes saved snapshots and does not rebuild historical strengths for every fixture batch.
+Separate workflows allow historical refresh and prediction runs to be controlled and reviewed independently. Workflow B consumes saved snapshots and does not rebuild historical strengths for every fixture batch. The proposed V1 keeps both workflows manual; schedules are not enabled.
 
 ## Historical measurements and model outline
 
-For each supported league-season, completed results are grouped by team venue. The stored counts and goals for/against provide inputs for home/away attack and defence factors; the league's average home and away goals provide competition baselines. Exact factor formulas and small-sample handling have not yet been selected.
+For each supported league-season, eligible completed results are grouped by team venue. The stored counts and goals for/against provide the venue-specific rates; the league's average home and away goals provide competition baselines. The assignment's attack, defence-weakness, and expected-goal formulas are specified in [n8n-workflow-blueprint.md](n8n-workflow-blueprint.md). Proposed V1 decisions such as FT-only status, 8 appearances per relevant venue, and no smoothing are recorded as recommendations requiring owner approval in [design-decisions.md](design-decisions.md).
 
 Expected goals are represented by `lambda_home` and `lambda_away`. For a goal count `k`, a Poisson model assigns `P(k; lambda) = exp(-lambda) * lambda^k / k!`. Under the commonly used but not-yet-approved independent team-score assumption, the probability of a scoreline `(h, a)` is `P(h; lambda_home) * P(a; lambda_away)`. The three highest scoreline probabilities can be ranked, and outcome probabilities can be obtained by summing scoreline probabilities for home wins, draws, and away wins. Grid bounds and probability mass outside the grid need a decision before implementation.
 
@@ -26,7 +26,7 @@ Use three Data Tables: `team_strengths` for team/season/league venue statistics,
 
 ## Evaluation
 
-Each prediction should be retained so that, once the corresponding fixture is complete, it can be joined to the actual result and evaluated. The actual-result fields, evaluation metrics, treatment of unscored/cancelled fixtures, and reporting cadence are not defined yet; see [design-decisions.md](design-decisions.md).
+Each prediction should be retained so that, once the corresponding fixture is complete, it can be joined to the actual result and evaluated. The proposed `prediction_log` includes actual goals/outcome and evaluation fields, but the result-status policy, metric acceptance, and reporting cadence still require review. Evaluation remains a later phase; see [design-decisions.md](design-decisions.md).
 
 ## Current scope
 

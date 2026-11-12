@@ -1,0 +1,43 @@
+{
+  "team_strengths": [
+    {
+      "team_key": "39|2025|42",
+      "league_id": 39,
+      "season": 2025,
+      "team_id": 42,
+      "team_name": "Mock Home",
+      "home_played": 8,
+      "home_goals_for": 18,
+      "home_goals_against": 9,
+      "away_played": 8,
+      "away_goals_for": 11,
+      "away_goals_against": 9,
+      "updated_at": "2026-11-12T00:00:00.000Z"
+    },
+    {
+      "team_key": "39|2025|49",
+      "league_id": 39,
+      "season": 2025,
+      "team_id": 49,
+      "team_name": "Mock Away",
+      "home_played": 8,
+      "home_goals_for": 9,
+      "home_goals_against": 9,
+      "away_played": 8,
+      "away_goals_for": 9,
+      "away_goals_against": 11,
+      "updated_at": "2026-11-12T00:00:00.000Z"
+    }
+  ],
+  "league_strengths": [
+    {
+      "league_key": "39|2025",
+      "league_id": 39,
+      "season": 2025,
+      "league_home_avg": 1.6875,
+      "league_away_avg": 1.25,
+      "matches_used": 16,
+      "updated_at": "2026-11-12T00:00:00.000Z"
+    }
+  ]
+}

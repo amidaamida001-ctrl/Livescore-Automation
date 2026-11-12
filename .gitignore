@@ -1,0 +1,22 @@
+# Local environment secrets
+.env
+*.local
+.env.*
+!.env.example
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# Logs and temp files
+*.log
+logs/
+temp/
+*.tmp
+
+# Node dependencies (optional safety)
+node_modules/

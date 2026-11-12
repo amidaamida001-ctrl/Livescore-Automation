@@ -1,0 +1,42 @@
+[
+  {
+    "fixture": {
+      "id": 101,
+      "status": {
+        "short": "1H"
+      }
+    },
+    "teams": {
+      "home": {
+        "name": "Arsenal"
+      },
+      "away": {
+        "name": "Chelsea"
+      }
+    },
+    "goals": {
+      "home": 1,
+      "away": 0
+    }
+  },
+  {
+    "fixture": {
+      "id": 102,
+      "status": {
+        "short": "FT"
+      }
+    },
+    "teams": {
+      "home": {
+        "name": "Manchester United"
+      },
+      "away": {
+        "name": "Liverpool"
+      }
+    },
+    "goals": {
+      "home": 2,
+      "away": 2
+    }
+  }
+]

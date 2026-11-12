@@ -1,0 +1,86 @@
+{
+  "name": "Football Prediction — Verify API Access",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "58ea71a2-009b-4422-8999-f91daf1a5d59",
+      "name": "Start Diagnostics",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://v3.football.api-sports.io/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "5df203e0-fb16-428a-a3f1-f5ce79c4793d",
+      "name": "Check API Status & Quota",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "credential-api-football-auth",
+          "name": "API-Football Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Collate API-Football account diagnostics and quota\nconst raw = $input.first().json;\nconst account = raw?.response?.account;\nconst subscription = raw?.response?.subscription;\nconst requests = raw?.response?.requests;\n\nreturn [{\n  json: {\n    status: 'connected',\n    email: account?.email || 'unknown',\n    plan: subscription?.plan || 'Free',\n    requests_used_today: requests?.current ?? 0,\n    daily_request_limit: requests?.limit_day ?? 100,\n    requests_remaining: (requests?.limit_day ?? 100) - (requests?.current ?? 0),\n    checked_at: new Date().toISOString(),\n  }\n}];"
+      },
+      "id": "d6df9d55-21bc-4830-a739-4fe654a3b2eb",
+      "name": "Format Diagnostics Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Start Diagnostics": {
+      "main": [
+        [
+          {
+            "node": "Check API Status & Quota",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check API Status & Quota": {
+      "main": [
+        [
+          {
+            "node": "Format Diagnostics Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "8d10c993-e36e-45e7-a9d4-d352a48a3974",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

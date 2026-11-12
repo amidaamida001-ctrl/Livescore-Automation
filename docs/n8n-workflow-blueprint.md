@@ -8,16 +8,7 @@
 
 The system has two separate n8n workflows. Workflow A builds historical strength snapshots. Workflow B consumes those snapshots to make pre-match probability estimates. JavaScript Code nodes own transformations and statistical calculations; n8n nodes orchestrate API, persistence, branching, and Telegram delivery.
 
-A fresh environment check on 2026-11-12 found:
-
-- Docker Desktop reports `starting` with a session ID.
-- WSL2 default version is 2, but both Ubuntu and `docker-desktop` are stopped.
-- `docker info` returns HTTP 500 from the Docker Desktop engine pipe.
-- `docker compose ps` cannot query the engine.
-- `http://localhost:5678/healthz` is unavailable.
-- The local Git branch is `main`, tracking `origin/main`.
-
-Therefore the prior n8n version/container/volume report is not current runtime proof. Do not repair Docker, recreate a container, or touch persistent data in this phase. Live workflow construction and UI-version checks are blocked until Docker/n8n is restored. The blueprint below is based on the committed project documents and official online n8n documentation; it is not an n8n export.
+At initial blueprint creation on 2026-11-12, Docker Desktop was stuck starting and the engine returned HTTP 500. The environment was subsequently recovered; current confirmed settings and recovery details are in [environment-setup.md](environment-setup.md). The existing container and volume were preserved. This document remains design-only and is not an n8n export.
 
 ## 2. Requirements versus recommendations
 
@@ -37,7 +28,7 @@ Therefore the prior n8n version/container/volume report is not current runtime p
 - Serialize prediction runs while using Data Tables because documented condition-based Upsert is not a database uniqueness guarantee.
 - Store a `pending` prediction before Telegram delivery, then update it to `sent` only on confirmed success or `failed` on an explicit error. This deliberately improves on the original send-then-save ordering.
 - Compute outcome probabilities on an expanded/adaptive goal range and report residual probability mass; keep the assignment's 0-5 values visible for comparison.
-- Extend the prediction log or create an evaluation dataset before implementing evaluation. The original columns alone do not retain all requested message content or the eventual actual score.
+- Use the proposed expanded `prediction_log` contract in Section 5 or a separately approved evaluation dataset; the original columns alone do not retain top-three predictions, delivery evidence, or actual results.
 
 ## 3. System architecture
 
@@ -62,32 +53,33 @@ The workflows are separate so a reviewed refresh can be run independently and pr
 
 ### Data Settings payload
 
-Use an **Edit Fields (Set)** node with explicit values. One execution should cover one league-season unless multi-league batching is designed later.
+Use an **Edit Fields (Set)** node with explicit values. Recommended V1 scope is one league-season per execution. Both workflows stay manual during development; these choices require owner approval and do not activate schedules.
 
 ```json
 {
   "league_id": 39,
   "season": 2025,
   "timezone": "Africa/Lagos",
-  "minimum_matches": 8,
+  "minimum_home_matches": 8,
+  "minimum_away_matches": 8,
   "historical_cutoff_date": "2026-11-11T23:59:59Z",
   "run_started_at": "2026-11-12T00:00:00Z"
 }
 ```
 
-The example IDs, season, sample threshold, and dates are illustrative only, not selected project settings. `minimum_matches` must not create fabricated values: it is used to mark each venue side as adequate/insufficient or to block a model refresh under an agreed policy. The cutoff is exclusive/inclusive behavior to define; recommended interpretation is include only completed fixture dates at or before the UTC cutoff.
+The example IDs, season, thresholds, and dates are illustrative; the 8-match thresholds are proposed, not approved. Use separate home/away counts. For a fixture, require at least 8 home appearances for the home-team home rates and 8 away appearances for the away-team away rates. Never fabricate missing rates. The cutoff is an inclusive UTC timestamp in this proposal; its exact boundary is still to approve.
 
 ### Node-by-node plan
 
 | ID | Canvas name | n8n node type | Responsibility; input -> output | Configuration and expressions | Connections, failure behavior, test |
 | --- | --- | --- | --- | --- | --- |
 | A1 | Start Data Refresh | Manual Trigger | Starts an operator-controlled refresh; emits one trigger item. | Use Manual Trigger first. Add a schedule only after review and a separate authorization. | -> A2. Test: manual execution starts once; no schedule is active. |
-| A2 | Data Settings | Edit Fields (Set) | Defines one league-season run; outputs settings shown above. | Keep only set fields. Validate positive numeric IDs/year/threshold, valid IANA timezone, and a parseable cutoff. No secrets here. | -> A3. The settings travel in the request/run envelope; invalid settings -> failure report. Test each invalid value. |
-| A3 | Get Completed Fixtures | HTTP Request | Fetches every results page from `GET https://v3.football.api-sports.io/fixtures`; emits one response item per page. | Method GET; query `league={{$json.league_id}}`, `season={{$json.season}}`, `status=FT` as the initial candidate, `page` starting at 1, and timezone only if verified supported. API credential must be Header Auth `x-apisports-key`, held in n8n Credentials. Enable full response/status for validation. HTTP Request pagination: update `page` each call (for example `={{ $pageCount + 1 }}`) and stop only when the response's current page reaches reported total pages. Confirm exact UI expression on the installed node version. Keep request errors as workflow errors or route them to failure handling; do not continue a partial page set. | -> A3a. Test one page, multiple pages, HTTP failure, and API error envelope with mocks. |
+| A2 | Data Settings | Edit Fields (Set) | Defines one league-season run; outputs settings shown above. | Keep only set fields. Validate positive numeric IDs/year/thresholds, valid IANA timezone, and a parseable cutoff. No secrets here. | -> A3. The settings travel in the request/run envelope; invalid settings -> failure report. Test each invalid value. |
+| A3 | Get Completed Fixtures | HTTP Request | Fetches every results page from the assignment's intended `GET https://v3.football.api-sports.io/fixtures`; emits one response item per page. | Proposed V1 query: `league`, `season`, `status=FT`, and `page`; confirm all names, accepted values, and `timezone` support from the official reference before implementation. API credential belongs in n8n Credentials. Enable full response/status for validation. Increment `page` until the API-reported total is reached; exact pagination fields are currently unverified. Keep request errors as workflow errors or route to failure handling; do not continue a partial set. | -> A3a. Test one page, multiple pages, HTTP failure, and API error envelope with mocks. |
 | A3a | Collect History Pages | Code (JavaScript, run once for all items) | Collects all page response items into one envelope; records page count, each page's status/errors/response/paging values, and whether pages 1..total are present exactly once. | Set `api_check.ok=false` for any missing/duplicate page, non-2xx, non-empty API errors, malformed response array, or inconsistent `paging.current/total`. Preserve every response body for A5 only when the complete set is valid. Read settings through the named Data Settings node. | -> A4. No partial envelope goes down the valid path. Test a middle page failed/missing while other pages succeeded; the overall result must be false. |
 | A4 | API Response OK? | IF | Makes one all-or-nothing decision over the collected pagination run, not one decision per page. | Condition `{{$json.api_check.ok === true}}`; `api_check` is produced by A3a after validating every page and reported pagination total. | True -> A5. False -> A14. Never continue with a partial or API-error page set. Test empty successful response separately from invalid/error. |
-| A5 | Validate & Normalise History | Code (JavaScript, run once for all fixtures) | Reads the complete page envelope and settings; returns one normalized run envelope containing fixtures, rejected count, and rejection reasons. Each accepted fixture has the schema below. | Flatten only after A4 confirms all pages are complete. Inspect actual response structure before fixing field access. Map fixture/league/team IDs, names, date, status, and regulation full-time goals. Reject null/undefined/non-integer/negative scores, missing IDs/date, non-completed status, and dates after the as-of cutoff. Do not turn missing goals into zero. Keep original status and reason counters. | -> A6. Structural API change or no usable fixtures -> fail/report; record rejected examples without credentials. Test complete, missing, null, negative, decimal, postponed, future, and malformed fixtures. |
-| A6 | Calculate League & Team Rates | Code (JavaScript, run once for all fixtures) | Consumes the normalized envelope; produces a single envelope with `team_rows[]`, one `league_row`, run counts, and adequacy flags. Aggregates totals by numeric IDs and venue. | `matches_used = valid fixture count`; league means are `sum(home_goals)/matches_used` and `sum(away_goals)/matches_used`. Per-team home/away counts and goals for/against are integers. Construct `team_key = league_id + '|' + season + '|' + team_id`; `league_key = league_id + '|' + season`. Set one ISO `updated_at`. If `matches_used===0`, stop rather than divide by zero. Do not calculate/divide strength factors here unless the formulas and minimum sample policy are approved; requested table stores counts/totals. | Branch -> A7 and A9. Failure -> refresh failure branch; no writes if aggregation invalid. Test hand-calculated matches, duplicate fixture IDs, empty input, zero denominator, and stable ID grouping when names collide. |
+| A5 | Validate & Normalise History | Code (JavaScript, run once for all fixtures) | Reads the complete page envelope and settings; returns one normalized run envelope containing fixtures, rejected count, and rejection reasons. Each accepted fixture has the schema below. | Proposed V1 includes `FT` only and the regulation full-time goal value. Expected candidate is `score.fulltime.home/away`; verify against official docs and a sanitized response before relying on it. Do not use extra-time or penalty totals. Flatten only after A4 confirms all pages are complete. Reject null/undefined/non-integer/negative scores, missing IDs/date, non-eligible status, and dates after the cutoff. Keep original status and reason counters. | -> A6. Structural/API change or no usable fixtures -> fail/report; record rejected examples without credentials. Test complete, missing, null, negative, decimal, postponed, AET/PEN, future, and malformed fixtures. |
+| A6 | Calculate League & Team Rates | Code (JavaScript, run once for all fixtures) | Consumes the normalized envelope; produces a single envelope with `team_rows[]`, one `league_row`, run counts, and adequacy flags. Aggregates totals by numeric IDs and venue. | `matches_used = valid fixture count`; league means are `sum(home_goals)/matches_used` and `sum(away_goals)/matches_used`. Per-team home/away counts and goals for/against are integers. Construct `team_key = league_id + '|' + season + '|' + team_id`; `league_key = league_id + '|' + season`. Set one ISO `updated_at`. If `matches_used===0`, stop rather than divide by zero. Store raw counts/totals; calculate the assignment attack/defence formulas in B10 after sufficiency validation. | Branch -> A7 and A9. Failure -> refresh failure branch; no writes if aggregation invalid. Test hand-calculated matches, duplicate fixture IDs, empty input, zero denominator, and stable ID grouping when names collide. |
 | A7 | Split Team Strength Rows | Split Out | Converts `team_rows[]` into one incoming item per team for row-wise Data Table Upsert. | Split field `team_rows`; retain only fields for the team table. Ensure A6 always produces at least one valid team row or errors explicitly. | -> A8. Test 1 and many teams; verify output item count. |
 | A8 | Save Team Strengths | Data Table: Row / Upsert | Idempotently writes team records. | Select `team_strengths`; **Must Match: All Conditions**; condition `team_key Equals {{$json.team_key}}`; map each column explicitly or map automatically only if names match exactly. For one condition, All is equivalent to that condition. | -> A11 Input 1. Any write error prevents success report and routes to failure handling. Test repeat same refresh and confirm row count stays stable. |
 | A9 | Prepare League Strength Row | Edit Fields (Set) | Selects the single `league_row` from A6 for the competition-level branch. | Map exact league columns; do not pass the full team array into the league table. | -> A10. Missing/multiple league row -> Stop And Error. Test exactly one row. |
@@ -218,26 +210,52 @@ Create these manually/review their n8n columns only in a later authorized implem
 
 ### `prediction_log`
 
+This is the proposed expanded V1 contract from [system-architecture.md](system-architecture.md); it has not been approved or created. Preserve the original assignment fields and add only after approval:
+
 | Column | Type | Purpose / matching |
 | --- | --- | --- |
-| `fixture_id` | String | API fixture ID converted to a string |
-| `model_version` | String | Immutable version label for the approved formula/configuration |
-| `home_team` | String | Display label |
-| `away_team` | String | Display label |
+| `prediction_key` | String | Derived `fixture_id|model_version` lookup key; not a unique constraint |
+| `fixture_id` | String | Source fixture ID normalized to string |
+| `model_version` | String | Immutable formula/policy version |
+| `league_id` | Number | Numeric competition identity |
+| `season` | Number | Season identity |
+| `league_name` | String | Competition label snapshot |
+| `match_date` | String | Kickoff timestamp in UTC |
+| `home_team_id` | Number | Numeric home team identity |
+| `away_team_id` | Number | Numeric away team identity |
+| `home_team` | String | Display name snapshot |
+| `away_team` | String | Display name snapshot |
 | `lambda_home` | Number | Home expected goals |
 | `lambda_away` | Number | Away expected goals |
-| `top_score` | String | Highest-ranked score, e.g. `1-0`; only the top score is in the original schema |
-| `home_win_prob` | Number | Probability as fraction 0-1, unless reviewed otherwise |
-| `draw_prob` | Number | Probability as fraction 0-1 |
-| `away_win_prob` | Number | Probability as fraction 0-1 |
-| `status` | String | At minimum `pending`, `sent`, `failed`; define stale-pending handling |
-| `predicted_at` | String | ISO-8601 UTC creation time |
+| `top_score` | String | Highest-ranked score; original field retained |
+| `top_scores_json` | String | JSON array of top three `{home_goals, away_goals, probability}` entries |
+| `home_win_prob` | Number | Unconditional probability fraction |
+| `draw_prob` | Number | Unconditional probability fraction |
+| `away_win_prob` | Number | Unconditional probability fraction |
+| `goal_max_home` | Number | Highest home-goal value in the adaptive grid |
+| `goal_max_away` | Number | Highest away-goal value in the adaptive grid |
+| `grid_mass` | Number | Joint probability mass captured by the finite grid |
+| `residual_prob` | Number | `1 - grid_mass`; omitted tail mass |
+| `home_team_strengths_updated_at` | String | Home team strength snapshot timestamp |
+| `away_team_strengths_updated_at` | String | Away team strength snapshot timestamp |
+| `league_strengths_updated_at` | String | League baseline snapshot timestamp |
+| `status` | String | `pending`, `sent`, or `failed` |
+| `predicted_at` | String | Prediction creation time, ISO-8601 UTC |
+| `last_attempt_at` | String | Most recent Telegram attempt |
+| `sent_at` | String | Confirmed Telegram delivery time |
+| `attempt_count` | Number | Telegram send attempt count |
+| `telegram_message_id` | String | Telegram message ID when confirmed |
+| `error_message` | String | Sanitized error; never credentials or headers |
+| `actual_home_goals` | Number | Actual regulation-time home goals, added later |
+| `actual_away_goals` | Number | Actual regulation-time away goals, added later |
+| `actual_match_status` | String | Status used to accept or exclude the actual result |
+| `actual_outcome` | String | `home`, `draw`, or `away` |
+| `actual_score_probability` | Number | Model probability assigned to the actual scoreline |
+| `brier_1x2` | Number | Candidate multiclass Brier score; leave blank until finite-grid evaluation policy is approved |
+| `top3_hit` | Boolean | Whether actual score appears in the stored top three |
+| `evaluated_at` | String | Evaluation time, ISO-8601 UTC |
 
-**Matching:** the requested criteria are `fixture_id + model_version`. Data Table Upsert can be configured with **Must Match: All Conditions** and equality conditions on both columns. `Any Condition` is unsafe because it could match a different fixture with the same model or a different model for the same fixture. An optional `prediction_key = fixture_id + '|' + model_version` string can simplify lookups, but it does not itself enforce uniqueness.
-
-**Duplicate-notification safety:** query existing records with both equality conditions (or a scoped log query followed by exact key comparison), skip `sent` and `pending`, and serialize runs to reduce races. If `failed`, follow the reviewed retry policy. Data Table Upsert is not documented as an atomic unique insert: concurrent executions can both observe no row and insert. Strict exactly-once external delivery cannot be guaranteed across a network timeout without an atomic idempotency mechanism at the destination. A `pending -> sent/failed` state machine makes recovery visible but does not alone eliminate that race.
-
-**Evaluation gap:** `top_score` stores only one score although the Telegram message requires three. The requested log also has no actual score/result, evaluation timestamp, competition/date snapshot, or strength snapshot. `lambda_home`/`lambda_away` plus a frozen model version can reproduce Poisson outputs only if formulas and parameters are immutable and fully recoverable. Recommended later schema review: `top_scores_json`, actual full-time goals/outcome, `evaluated_at`, and prediction provenance. Do not add columns until approved.
+**Matching and delivery:** match both `fixture_id` and `model_version` using **Must Match: All Conditions**, or query `prediction_key`. Upsert does not guarantee atomic uniqueness. Proposed V1 is manual and non-overlapping: save `pending` before Telegram; on confirmed success update to `sent`; on explicit failure update to `failed`; leave ambiguous timeouts pending for manual reconciliation. The proposed 15-minute stale threshold is a review alert only, not an automatic resend. All these schema/state choices require owner approval.
 
 ## 6. Workflow B: Predict Upcoming Matches
 
@@ -250,20 +268,22 @@ Create these manually/review their n8n columns only in a later authorized implem
   "timezone": "Africa/Lagos",
   "fixture_from": "2026-11-12",
   "fixture_to": "2026-11-18",
-  "minimum_matches": 8,
+  "minimum_home_matches": 8,
+  "minimum_away_matches": 8,
   "model_version": "poisson-baseline-v1",
-  "goal_grid_max": 5
+  "goal_grid_max": 5,
+  "joint_residual_tolerance": 0.000001
 }
 ```
 
-Illustrative only. Keep model version immutable: changing formulas, inclusion rules, or grid semantics requires a new version and review. Display kickoff in the selected timezone; store timestamps in UTC.
+Illustrative only; 8-match thresholds and residual tolerance are proposed and require approval. Keep model version immutable: changing formulas, inclusion rules, or grid semantics requires a new version and review. Display kickoff in the selected timezone; store timestamps in UTC. Both workflows remain manual in V1.
 
 ### Node-by-node plan
 
 | ID | Canvas name | n8n node type | Responsibility; input -> output | Configuration and expressions | Connections, failure behavior, test |
 | --- | --- | --- | --- | --- | --- |
 | B1 | Start Prediction Run | Manual Trigger | Starts an operator-controlled batch. | Manual first; scheduling only after successful review and separate authorization. | -> B2. Test no automatic run exists. |
-| B2 | Prediction Settings | Edit Fields (Set) | Defines one league-season and date-window batch. | Validate IDs, dates, timezone, model version, sample threshold, and `goal_grid_max`. One league-season per execution is the initial design for bounded table reads. | -> B3, B6, B7, and log read helper. Invalid settings stop before HTTP/table work. |
+| B2 | Prediction Settings | Edit Fields (Set) | Defines one league-season and date-window batch. | Validate IDs, dates, timezone, model version, separate `minimum_home_matches` / `minimum_away_matches`, baseline `goal_grid_max=5`, and proposed `joint_residual_tolerance=0.000001`. One league-season per manual execution is the proposed V1 scope. | -> B3, B6, B7, and log read helper. Invalid settings stop before HTTP/table work. |
 | B3 | Get Upcoming Fixtures | HTTP Request | Fetches upcoming fixtures from the fixtures endpoint with all pages as required. | GET `/fixtures`; query `league`, `season`, `from`, `to`; optional upcoming `status` only after verifying API's current status codes. Header credential in n8n. Use timezone query only if officially supported. Pagination based on reported page metadata, not one-page assumption. | -> B3a. Request error must not be treated as a complete fixture batch. Test multiple pages, zero fixtures, errors, bad dates. |
 | B3a | Collect Upcoming Pages | Code (JavaScript, run once for all items) | Collects all page responses and proves every expected page exists once with valid HTTP/API status and response shape. | Produce one `{api_check, pages, settings}` envelope; set false for page gaps, duplicate page numbers, API errors, malformed response, or paging inconsistency. | -> B4. Test failure on one middle page while earlier/later pages exist; whole run must fail closed. |
 | B4 | API Response OK? | IF | Makes one all-or-nothing decision for the complete paginated fixture request. | Condition `{{$json.api_check.ok === true}}`; never evaluate each page independently. | True -> B5. False -> controlled failure report. Test API error and empty successful fixture set separately. |
@@ -272,7 +292,7 @@ Illustrative only. Keep model version immutable: changing formulas, inclusion ru
 | B7 | Read League Strengths | Data Table: Row / Get | Retrieves the matching competition averages. | Table `league_strengths`; Must Match **All Conditions** on `league_id` and `season` (or `league_key Equals {{$json.league_id + '|' + $json.season}}`); limit 2 to detect duplicate records. Always output a placeholder for no match. | -> B8 input 3. Missing/duplicate league row is not silently selected; mark all affected fixtures insufficient. Test 0, 1, and >1 result. |
 | B8a | Wait for Fixture and Lookups | Merge (Append, 3 inputs) | Synchronizes normalized fixtures, team rows, and league row before join code executes. | Mode Append, 3 inputs. It is a barrier only; output ordering is irrelevant and must not be used as a join key. Ensure B5 emits an empty-run sentinel item when there are zero fixtures and table reads output placeholders when empty. | -> B8. Test unbalanced input counts and an empty team table; no positional merging. |
 | B8 | Join Fixture and Team Strengths | Code (JavaScript, run once for all items) | Builds a map from team-strength rows keyed by `league_id|season|team_id`, and a league map keyed by `league_id|season`; returns every normalized fixture enriched with home row, away row, league row, and data-status reasons. | Read source items by node name using n8n item APIs (for example `$('Normalise Upcoming Fixtures').all()` and `$('Read Team Strengths').all()`); do not read merged `items` by order. Detect duplicate composite keys and mark ambiguous lookup as insufficient. Check numeric key equality and league-season for every lookup. | -> B9. Keep fixtures even when either team/league is missing. Join exception -> fail report; duplicate or missing data -> explicit insufficiency branch. Test shuffled table order and colliding team names. |
-| B9 | Check Historical Data Sufficiency | IF | Routes each fixture based on league row and both team rows, positive required denominators, finite positive league averages, and agreed home/away sample minimums. | Example condition after join: `{{$json.data_quality.sufficient === true}}`. Reasons include missing league average, missing home/away team, duplicate key, zero home/away appearances, or below minimum count. | True -> B10. False -> B9a. No fixture is dropped. Test each reason separately. |
+| B9 | Check Historical Data Sufficiency | IF | Routes each fixture based on the rows and denominators used by its formulas. | Proposed V1 requires the home team's `home_played >= minimum_home_matches` and the away team's `away_played >= minimum_away_matches` (both proposed as 8), `matches_used > 0`, and positive finite league averages. Example condition: `{{$json.data_quality.sufficient === true}}`. | True -> B10. False -> B9a. No fixture is dropped. Test each reason separately. Threshold is pending owner approval. |
 | B9a | Aggregate Insufficient Fixtures | Code (JavaScript, run once for all items) | Collects all insufficient fixtures and reason codes into one operator report item so one bad run does not flood Telegram with one message per fixture. | Include fixture ID, teams, league/season, and explicit reason; no invented stats/probabilities. | -> B9b Telegram diagnostic or reviewed run log. Test 0/1/many insufficient items; one diagnostic per run. |
 | B9b | Insufficient Data Report | Telegram: Send Message | Explains why specific fixtures were not predicted reliably. | Use a separate diagnostic template and configured operator chat credential. If no insufficiencies, this branch does not run. | End branch. Telegram failure is recorded as execution error; must not convert fixture to a prediction. |
 | B10 | Calculate Score Probabilities | Code (JavaScript) | Calculates attack/defence rates, expected goals, goal PMFs, scoreline distribution, top three scores, and outcome probabilities for sufficient fixtures. | Use only the formulas in Section 7; reject non-finite/negative values and zero denominators. Retain both 0-5 baseline and expanded-grid probabilities until policy is approved. Never renormalize truncated probabilities without labelling the conditional result. | -> B11. Invalid computation routes to a calculation failure summary; test against the hand-check in Section 8. |
@@ -323,27 +343,57 @@ Illustrative only. Keep model version immutable: changing formulas, inclusion ru
 
 ### Upcoming fixture and joined item shapes
 
-```json
-{
-  "fixture_id": "123456",
-  "league_id": 39,
-  "league_name": "Example League",
-  "season": 2025,
-  "match_date": "2026-11-14T17:30:00Z",
-  "home_team_id": 42,
-  "away_team_id": 49,
-  "home_team": "Home FC",
-  "away_team": "Away FC"
-}
-```
+### `prediction_log` (proposed expanded V1 contract; approval required)
 
-After B8 join, add `home_strength`, `away_strength`, `league_strength`, and `data_quality: {sufficient, reasons: []}`. B9 routes this item; it must not discard missing records.
+| Column | Type | Purpose / matching |
+| --- | --- | --- |
+| `prediction_key` | String | Derived `fixture_id|model_version` lookup key; not a unique constraint |
+| `fixture_id` | String | API fixture ID normalized to string |
+| `model_version` | String | Immutable model/policy version |
+| `league_id` | Number | Numeric competition identity |
+| `season` | Number | Competition season |
+| `league_name` | String | Competition label snapshot |
+| `match_date` | String | Kickoff timestamp in UTC |
+| `home_team_id` | Number | Numeric home team identity |
+| `away_team_id` | Number | Numeric away team identity |
+| `home_team` | String | Display name snapshot |
+| `away_team` | String | Display name snapshot |
+| `lambda_home` | Number | Home expected goals |
+| `lambda_away` | Number | Away expected goals |
+| `top_score` | String | Highest-ranked score, retained from original schema |
+| `top_scores_json` | String | JSON array of top three `{home_goals, away_goals, probability}` entries |
+| `home_win_prob` | Number | Unconditional probability fraction |
+| `draw_prob` | Number | Unconditional probability fraction |
+| `away_win_prob` | Number | Unconditional probability fraction |
+| `goal_max_home` | Number | Highest home-goal value in adaptive grid |
+| `goal_max_away` | Number | Highest away-goal value in adaptive grid |
+| `grid_mass` | Number | Joint probability mass captured by the finite grid |
+| `residual_prob` | Number | `1 - grid_mass`; omitted tail mass |
+| `home_team_strengths_updated_at` | String | Home team's strength snapshot timestamp |
+| `away_team_strengths_updated_at` | String | Away team's strength snapshot timestamp |
+| `league_strengths_updated_at` | String | League baseline snapshot timestamp |
+| `status` | String | `pending`, `sent`, or `failed` |
+| `predicted_at` | String | Prediction time, ISO-8601 UTC |
+| `last_attempt_at` | String | Most recent Telegram attempt |
+| `sent_at` | String | Confirmed Telegram delivery time |
+| `attempt_count` | Number | Telegram send attempt count |
+| `telegram_message_id` | String | Returned Telegram message ID when confirmed |
+| `error_message` | String | Sanitized error; never credentials or headers |
+| `actual_home_goals` | Number | Actual regulation-time score, filled in later |
+| `actual_away_goals` | Number | Actual regulation-time score, filled in later |
+| `actual_match_status` | String | Status used to accept/exclude the actual result |
+| `actual_outcome` | String | `home`, `draw`, or `away` |
+| `actual_score_probability` | Number | Probability assigned to the eventual scoreline |
+| `brier_1x2` | Number | Candidate Brier field; leave blank until an approved evaluation method handles residual mass |
+| `top3_hit` | Boolean | Whether actual score appears in stored top three |
+| `evaluated_at` | String | Evaluation time, ISO-8601 UTC |
 
-## 7. Expected goals and Poisson model
+Use the full field descriptions and optional/null behavior from [system-architecture.md](system-architecture.md). Whether the installed Data Table node accepts blank/null Number values must be tested before table creation. No table exists yet.
 
-### Original assignment baseline
+**Matching:** match `fixture_id` AND `model_version` (Must Match **All Conditions**) or use the derived `prediction_key`. `Any Condition` is unsafe. Upsert does not enforce uniqueness under concurrency.
 
-For team home and away measurements:
+**Recommended V1 safety:** manual and non-overlapping prediction runs, exact pre-send lookup, write `pending` before Telegram, mark `sent` only after confirmation, mark `failed` on explicit failure, and leave an ambiguous timeout pending for manual reconciliation. A pending record older than 15 minutes is a proposed review alert only, never automatic resend. These ordering/retry choices require approval.
+Keep the 0-5 grid as the assignment comparison. Proposed V1 expands home and away bounds independently until `grid_mass = CDF_home(Kh) * CDF_away(Ka) >= 0.999999`, so `residual_prob = 1 - grid_mass <= 1e-6`. Store both bounds and mass. Sum home/draw/away cells as unconditional probabilities; their sum is `grid_mass`, not 1. Do not rescale silently. If an implementation safety cap is reached before the target, fail the prediction and report it. The `1e-6` target and cap require approval. Do not introduce a Skellam dependency or ML/AI probability estimator in V1.
 
 - `home_attack = (home_goals_for / home_played) / league_home_avg`
 - `home_defence_weakness = (home_goals_against / home_played) / league_away_avg`
@@ -369,7 +419,7 @@ For a finite grid 0..K, the assignment's scoreline probabilities are uncondition
 
 ### Recommended tail treatment (separate from baseline)
 
-Keep the 0-5 grid as the assignment comparison. For final outcome probabilities, increase K until each marginal tail is below an agreed epsilon; for independent scores, omitted joint mass is bounded by the sum of the two marginal tail probabilities. Report residual mass and do not rescale silently. A provisional tolerance such as `1e-8` is a recommendation, not an assignment value. Alternatively use a well-tested Skellam implementation for the goal difference if approved, but still use a sufficiently broad grid for top scorelines. Do not introduce an ML/AI estimator.
+Keep the 0-5 grid as the assignment comparison. The proposed V1 expanded grid increases the home and away bounds independently until `grid_mass = CDF_home(Kh) * CDF_away(Ka) >= 0.999999`, with `residual_prob = 1 - grid_mass <= 1e-6`. Store both bounds and mass. Sum home/draw/away cells as unconditional probabilities; their sum is `grid_mass`, not 1. Do not rescale silently. If an implementation safety cap is reached before the target, fail the prediction and report it. The `1e-6` target and cap require owner approval. Do not introduce a Skellam dependency or ML/AI probability estimator in V1.
 
 ## 8. Hand-checkable numerical test
 
@@ -459,11 +509,13 @@ The n8n HTTP Request node supports generic Header Auth credentials and built-in 
 - API-Football FAQ: https://www.api-football.com/news/post/api-football-faq
 - n8n HTTP Request node and pagination: https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/
 
-The API-Football reference/pricing pages could not be extracted by the available documentation fetcher during this design run, and there is no account/plan information in the workspace. Therefore the exact current plan quota, historical season entitlements, endpoint rate limits, and status-code list are **not verified here**. Do not use any former LiveScore plan quota or assume a free-plan allowance. Before implementing A3/B3, open the official reference and account dashboard, inspect a no-secret sample response, verify season availability and pagination fields, and confirm the account quota. Do not make a live request as part of this blueprint.
+The official API-Football reference/pricing pages returned HTTP 403 or could not be extracted during this review; the FAQ also returned HTTP 403. No API key was requested and no live API request was made. Exact current endpoint parameters, full response structure, status meanings/score fields, plan quota/rate limits, and historical season access are therefore **unverified**. Do not use a previous LiveScore quota or assume a free-plan allowance.
 
-Expected v3 response envelope to verify against an authorized sample: `get`, `parameters`, `errors`, `results`, `paging: {current,total}`, and `response[]`. Expected fixture fields include `fixture.id/date/status`, `league.id/season/name`, `teams.home/away.id/name`, and goals/score fields. These paths are planning expectations, not a substitute for inspecting actual data.
+Expected v3 conventions to confirm in the official reference and a sanitized response: envelope fields `get`, `parameters`, `errors`, `results`, `paging.current`, `paging.total`, and `response[]`; fixture fields under `fixture.id/date/status`, `league.id/season/name`, `teams.home/away.id/name`, plus `goals` and `score`. Candidate query parameters are `league`, `season`, `status`, `page`, `from`, `to`, and possibly `timezone`; use only documented parameters supported by the account.
 
-Candidate fixture query parameters are `league`, `season`, `status`, `page`, `from`, `to`, and possibly `timezone`; use only documented parameters for the endpoint and selected subscription. For historical data use completed status filtering, but verify whether `FT` alone is the desired status and whether `AET`/`PEN` should be included. Confirm the correct regulation-time score field. For upcoming fixtures, verify the current not-started status values or use a date window without an unverified status filter. The API's `leagues` endpoint/season metadata should be checked for season availability.
+Candidate status meanings are `FT` = full-time, `AET` = after extra time, and `PEN` = penalty shoot-out. Proposed V1 selection is `FT` only with regulation-time goals. `score.fulltime.home/away` is the candidate goal field; verify it and compare with `goals.home/away` in the official docs/sanitized response before mapping. For future decisions about extra-time fixtures, inspect `score.extratime` and `score.penalty`; do not mix these totals into a regulation-time dataset. The exact combined-status query behavior is unverified.
+
+**Account-owner check required:** verify plan name, request allowance, per-minute restrictions, historical seasons available, selected league IDs/seasons, endpoint access, and concurrency/rate restrictions in the private dashboard. No API key is needed for this check and it must not be shared in chat. Verify the API's league/season metadata endpoint for coverage, counting that call in the request budget. Do not make a live request as part of this design stage.
 
 ### Budget model
 
@@ -497,28 +549,15 @@ No numerical daily quota is asserted until the account plan is verified. Record 
 9. **Concurrency/idempotency:** repeated sequential run and simulated overlapping run; document that a Data Table precheck/upsert is not a unique transaction.
 10. **Evaluation:** actual outcomes joined only after kickoff/final result; time-ordered evaluation split; no future leakage.
 
-## 14. Outstanding decisions
+## 14. V1 decisions and approval state
 
-The following remain open from the project design and this blueprint:
-
-1. API-Football pagination details and account-specific historical access/plan quota.
-2. Supported league/season coverage and how seasons are added.
-3. Completed status set (`FT` versus extra-time/penalty cases) and which score field is the prediction target.
-4. `minimum_matches` meaning: per team overall, separate home/away minimum, and policy for insufficient rows.
-5. Strength formula and whether zero/sparse league baselines are rejected or smoothed; no smoothing is currently assumed.
-6. Upsert behavior with duplicate rows, case/type matching, and practical Data Table size/performance at installed n8n version.
-7. Prediction record extension needed for three scorelines, actual result, and reproducible evaluation.
-8. Probability display units, tail epsilon/grid bounds, and whether displayed outcome probabilities use full/adaptive support.
-9. Duplicate retry rules, stale `pending` recovery, serial execution/locking, and ambiguous Telegram timeouts.
-10. Telegram rate limits and which chat receives failure/insufficient-data reports.
-11. API request budget and refresh/prediction cadence after account plan review.
-12. Whether model evaluation remains a later phase or becomes a third workflow.
+The recommended options and their effects are detailed in [design-decisions.md](design-decisions.md). Owner approval is still required for: one league-season per manual run; API/account checks; `FT`-only and the score field; 8 relevant-venue appearances; no smoothing and zero-denominator handling; exact expanded schemas; adaptive grid residual `<=1e-6` and safety cap; pending-before-send, retry/stale handling, and serialized manual runs; the API budget; and evaluation deferral. No proposed choice here should be treated as approved until the owner confirms it.
 
 ## 15. Implementation order after blueprint approval
 
-1. Restore and verify existing Docker Desktop/n8n; do not rebuild or remove persistent storage.
-2. Review and resolve the status, sample, rate, table-field, probability-tail, and notification-state decisions above.
-3. Inspect official API-Football docs/account plan and an authorized sanitized/mock response before live requests.
+1. Owner reviews and approves the V1 decision register and exact schemas; resolve the status, sample, probability-tail, delivery, and evaluation choices.
+2. Verify official API-Football documentation/account plan and inspect an authorized sanitized response before live requests; do not share an API key in chat.
+3. Reconfirm the existing Docker Desktop/n8n runtime before implementation; do not rebuild or remove persistent storage.
 4. Approve exact Data Table schemas and keys; create them only after a separate implementation go-ahead.
 5. Write and test maintainable JavaScript source modules under `src/code-nodes` using fixtures, including aggregation and Poisson unit tests.
 6. Build Workflow A manually with mock/fixture data; prove both Upserts and one completion report.
@@ -535,4 +574,4 @@ The following remain open from the project design and this blueprint:
 - n8n Merge node (Append, matching fields, SQL): https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/
 - n8n HTTP Request pagination: https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/
 
-The official n8n docs describe Data Table Upsert as update-on-match/insert-on-no-match and allow **All Conditions** for multi-column criteria; Merge supports Append synchronization, matching-field combination, and SQL joins. Current n8n docs say SQL Merge with more than two inputs is available from n8n 1.49.0, so that capability should exist in the reported 2.46.7 release, but runtime verification is blocked. The recommended join uses a Code map after an Append barrier to avoid accidental positional matching; SQL Merge is a reasonable alternative after a version-specific mock test.
+The official n8n docs describe Data Table Upsert as update-on-match/insert-on-no-match and allow **All Conditions** for multi-column criteria; Merge supports Append synchronization, matching-field combination, and SQL joins. Current n8n docs say SQL Merge with more than two inputs is available from n8n 1.49.0. The installed n8n 2.46.7 runtime was recovered and verified on 2026-11-12, but a Merge SQL join still needs a version-specific mock test before use. The recommended join uses a Code map after an Append barrier to avoid accidental positional matching.

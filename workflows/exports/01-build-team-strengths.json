@@ -1,0 +1,526 @@
+{
+  "name": "Football Prediction — Build Team Strengths",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "0f077e3f-0f8f-46db-b364-4bd71c5b7a7a",
+      "name": "Start Data Refresh",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "fields": {
+          "values": [
+            {
+              "name": "league_id",
+              "type": "number",
+              "value": 39
+            },
+            {
+              "name": "season",
+              "type": "number",
+              "value": 2025
+            },
+            {
+              "name": "timezone",
+              "type": "string",
+              "value": "Africa/Lagos"
+            },
+            {
+              "name": "minimum_home_matches",
+              "type": "number",
+              "value": 8
+            },
+            {
+              "name": "minimum_away_matches",
+              "type": "number",
+              "value": 8
+            },
+            {
+              "name": "historical_status",
+              "type": "string",
+              "value": "FT"
+            },
+            {
+              "name": "historical_cutoff_date",
+              "type": "string",
+              "value": "2025-12-31T23:59:59Z"
+            },
+            {
+              "name": "data_mode",
+              "type": "string",
+              "value": "mock"
+            }
+          ]
+        }
+      },
+      "id": "fde448a5-88d5-47f2-bbc5-b82d733020da",
+      "name": "Data Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.data_mode }}",
+              "value2": "mock"
+            }
+          ]
+        }
+      },
+      "id": "d907d59c-76cb-41cb-9cb0-fce793fcb113",
+      "name": "Check Data Mode",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Load verified mock historical fixtures for safe offline execution and testing\nconst mockData = {\r\n  \"get\": \"fixtures\",\r\n  \"parameters\": {\r\n    \"league\": \"39\",\r\n    \"season\": \"2025\",\r\n    \"status\": \"FT\",\r\n    \"timezone\": \"Africa/Lagos\"\r\n  },\r\n  \"errors\": [],\r\n  \"results\": 21,\r\n  \"paging\": {\r\n    \"current\": 1,\r\n    \"total\": 1\r\n  },\r\n  \"response\": [\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1001,\r\n        \"date\": \"2025-08-01T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 2,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 2,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1002,\r\n        \"date\": \"2025-08-08T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 3,\r\n        \"away\": 2\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 3,\r\n          \"away\": 2\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1003,\r\n        \"date\": \"2025-08-15T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 1,\r\n        \"away\": 0\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 1,\r\n          \"away\": 0\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1004,\r\n        \"date\": \"2025-08-22T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 2,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 2,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1005,\r\n        \"date\": \"2025-08-29T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 2,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 2,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1006,\r\n        \"date\": \"2025-09-05T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 3,\r\n        \"away\": 2\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 3,\r\n          \"away\": 2\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1007,\r\n        \"date\": \"2025-09-12T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 2,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 2,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1008,\r\n        \"date\": \"2025-09-19T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 3,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 3,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1009,\r\n        \"date\": \"2025-09-26T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 1,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 1,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1010,\r\n        \"date\": \"2025-10-03T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 0,\r\n        \"away\": 2\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 0,\r\n          \"away\": 2\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1011,\r\n        \"date\": \"2025-10-10T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 2,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 2,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1012,\r\n        \"date\": \"2025-10-17T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 1,\r\n        \"away\": 0\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 1,\r\n          \"away\": 0\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1013,\r\n        \"date\": \"2025-10-24T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 1,\r\n        \"away\": 2\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 1,\r\n          \"away\": 2\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1014,\r\n        \"date\": \"2025-10-31T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 2,\r\n        \"away\": 2\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 2,\r\n          \"away\": 2\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1015,\r\n        \"date\": \"2025-11-07T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 1,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 1,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1016,\r\n        \"date\": \"2025-11-14T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 1,\r\n        \"away\": 2\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 1,\r\n          \"away\": 2\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 1001,\r\n        \"date\": \"2025-08-01T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 2,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 2,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 2001,\r\n        \"date\": \"2025-11-21T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"AET\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 3,\r\n        \"away\": 2\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 1,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 2002,\r\n        \"date\": \"2025-11-28T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"PEN\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": 1,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": 0,\r\n          \"away\": 0\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 2003,\r\n        \"date\": \"2025-12-05T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": null,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": null,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 2004,\r\n        \"date\": \"2025-12-12T18:00:00+00:00\",\r\n        \"status\": {\r\n          \"short\": \"FT\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"season\": 2025,\r\n        \"name\": \"Mock Premier League\"\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      },\r\n      \"goals\": {\r\n        \"home\": -1,\r\n        \"away\": 1\r\n      },\r\n      \"score\": {\r\n        \"fulltime\": {\r\n          \"home\": -1,\r\n          \"away\": 1\r\n        }\r\n      }\r\n    }\r\n  ]\r\n}\r\n;\nreturn [{ json: mockData }];"
+      },
+      "id": "9bedebc9-1899-4cf9-af10-090c12cad7f6",
+      "name": "Load Mock Historical Fixtures",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://v3.football.api-sports.io/fixtures",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "league",
+              "value": "={{ $json.league_id }}"
+            },
+            {
+              "name": "season",
+              "value": "={{ $json.season }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.historical_status }}"
+            },
+            {
+              "name": "timezone",
+              "value": "={{ $json.timezone }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "id": "05563f7b-7e19-4de7-b3a4-1cf2c25fb524",
+      "name": "Get Completed Fixtures",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        420
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "credential-api-football-auth",
+          "name": "API-Football Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ typeof $json === \"object\" && $json !== null && (!Array.isArray($json.errors) || $json.errors.length === 0) && (typeof $json.errors !== \"object\" || Object.keys($json.errors).length === 0) && Array.isArray($json.response) }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "b0578154-f3bf-4a3a-9419-2356c34f071c",
+      "name": "API Response OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Validate and normalise historical fixtures\nconst rawBody = $input.first().json;\nconst settings = $('Data Settings').first().json;\n\nfunction isEmptyErrors(errors) {\n  if (errors == null || errors === '') return true;\n  if (Array.isArray(errors)) return errors.length === 0;\n  if (typeof errors === 'object') return Object.keys(errors).length === 0;\n  return false;\n}\n\nfunction validScore(val) {\n  return Number.isInteger(val) && val >= 0;\n}\n\nif (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody)) {\n  throw new Error('API response must be an object.');\n}\nif (!isEmptyErrors(rawBody.errors)) {\n  throw new Error('API-Football reported response errors: ' + JSON.stringify(rawBody.errors));\n}\nif (!Array.isArray(rawBody.response)) {\n  throw new Error('API response.response must be an array.');\n}\nif (!rawBody.paging || !Number.isInteger(rawBody.paging.current) || !Number.isInteger(rawBody.paging.total)) {\n  throw new Error('Pagination metadata is missing or invalid; refusing partial history refresh.');\n}\nif (rawBody.paging.current < 1 || rawBody.paging.total < 1 || rawBody.paging.current < rawBody.paging.total) {\n  throw new Error('Historical response is incomplete; refusing partial set.');\n}\nif (Number.isInteger(rawBody.results) && rawBody.results !== rawBody.response.length) {\n  throw new Error('API results count does not match response length.');\n}\n\nconst accepted = [];\nconst rejected = [];\nconst seenFixtureIds = new Set();\nconst cutoffTime = settings.historical_cutoff_date\n  ? Date.parse(settings.historical_cutoff_date)\n  : Number.POSITIVE_INFINITY;\n\nfor (const raw of rawBody.response) {\n  const fixtureId = raw?.fixture?.id;\n  if (!Number.isInteger(fixtureId) || fixtureId <= 0) {\n    rejected.push({ fixture_id: fixtureId ?? null, reason: 'invalid_fixture_id' });\n    continue;\n  }\n  if (seenFixtureIds.has(fixtureId)) {\n    rejected.push({ fixture_id: fixtureId, reason: 'duplicate_fixture_id' });\n    continue;\n  }\n  seenFixtureIds.add(fixtureId);\n\n  const status = raw?.fixture?.status?.short;\n  if (status !== 'FT') {\n    rejected.push({ fixture_id: fixtureId, reason: 'ineligible_status:' + (status ?? 'missing') });\n    continue;\n  }\n\n  const leagueId = raw?.league?.id;\n  const season = raw?.league?.season;\n  const home = raw?.teams?.home;\n  const away = raw?.teams?.away;\n  const matchDate = raw?.fixture?.date;\n  const dateTime = Date.parse(matchDate);\n  const homeGoals = raw?.score?.fulltime?.home;\n  const awayGoals = raw?.score?.fulltime?.away;\n\n  if (!Number.isInteger(leagueId) || leagueId !== settings.league_id || season !== settings.season) {\n    rejected.push({ fixture_id: fixtureId, reason: 'league_or_season_mismatch' });\n    continue;\n  }\n  if (!Number.isInteger(home?.id) || !Number.isInteger(away?.id) || home.id <= 0 || away.id <= 0) {\n    rejected.push({ fixture_id: fixtureId, reason: 'missing_or_invalid_team_id' });\n    continue;\n  }\n  if (!home?.name || !away?.name || !Number.isFinite(dateTime) || dateTime > cutoffTime) {\n    rejected.push({ fixture_id: fixtureId, reason: 'missing_or_out_of_cutoff_fixture_data' });\n    continue;\n  }\n  if (!validScore(homeGoals) || !validScore(awayGoals)) {\n    rejected.push({ fixture_id: fixtureId, reason: 'missing_or_invalid_fulltime_score' });\n    continue;\n  }\n  if ((raw.goals?.home != null && raw.goals.home !== homeGoals) ||\n      (raw.goals?.away != null && raw.goals.away !== awayGoals)) {\n    rejected.push({ fixture_id: fixtureId, reason: 'goals_and_fulltime_score_disagree' });\n    continue;\n  }\n\n  accepted.push({\n    fixture_id: fixtureId,\n    league_id: leagueId,\n    season,\n    home_team_id: home.id,\n    away_team_id: away.id,\n    home_team: home.name,\n    away_team: away.name,\n    home_goals: homeGoals,\n    away_goals: awayGoals,\n    match_date: new Date(dateTime).toISOString(),\n    match_status: status,\n  });\n}\n\nreturn [{\n  json: {\n    fixtures: accepted,\n    accepted_count: accepted.length,\n    rejected_count: rejected.length,\n    rejected,\n  }\n}];"
+      },
+      "id": "b2732e2a-1adf-4112-90d0-02babb840f54",
+      "name": "Validate & Normalise History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Calculate league scoring averages and team home/away strengths\nconst inputData = $input.first().json;\nconst fixtures = inputData.fixtures || [];\nconst settings = $('Data Settings').first().json;\nconst updatedAt = new Date().toISOString();\n\nif (fixtures.length === 0) {\n  throw new Error('No eligible FT fixtures found; refusing to calculate empty strengths.');\n}\n\nconst seen = new Set();\nlet totalHomeGoals = 0;\nlet totalAwayGoals = 0;\nconst teams = new Map();\n\nfunction teamRecord(teamId, teamName) {\n  if (!teams.has(teamId)) {\n    teams.set(teamId, {\n      team_key: settings.league_id + '|' + settings.season + '|' + teamId,\n      league_id: settings.league_id,\n      season: settings.season,\n      team_id: teamId,\n      team_name: teamName,\n      home_played: 0,\n      home_goals_for: 0,\n      home_goals_against: 0,\n      away_played: 0,\n      away_goals_for: 0,\n      away_goals_against: 0,\n      updated_at: updatedAt,\n    });\n  }\n  const record = teams.get(teamId);\n  if (record.team_name !== teamName) record.team_name = teamName;\n  return record;\n}\n\nfor (const fixture of fixtures) {\n  if (!fixture || fixture.match_status !== 'FT') throw new Error('Only normalized FT fixtures may be aggregated.');\n  if (seen.has(fixture.fixture_id)) throw new Error('Duplicate fixture ' + fixture.fixture_id + ' reached aggregation.');\n  seen.add(fixture.fixture_id);\n\n  totalHomeGoals += fixture.home_goals;\n  totalAwayGoals += fixture.away_goals;\n\n  const home = teamRecord(fixture.home_team_id, fixture.home_team);\n  const away = teamRecord(fixture.away_team_id, fixture.away_team);\n\n  home.home_played += 1;\n  home.home_goals_for += fixture.home_goals;\n  home.home_goals_against += fixture.away_goals;\n\n  away.away_played += 1;\n  away.away_goals_for += fixture.away_goals;\n  away.away_goals_against += fixture.home_goals;\n}\n\nconst matchesUsed = fixtures.length;\nconst leagueRow = {\n  record_type: 'league',\n  league_key: settings.league_id + '|' + settings.season,\n  league_id: settings.league_id,\n  season: settings.season,\n  league_home_avg: totalHomeGoals / matchesUsed,\n  league_away_avg: totalAwayGoals / matchesUsed,\n  matches_used: matchesUsed,\n  updated_at: updatedAt,\n};\n\nif (!Number.isFinite(leagueRow.league_home_avg) || !Number.isFinite(leagueRow.league_away_avg)) {\n  throw new Error('League averages are not finite numbers.');\n}\n\nconst teamRows = [...teams.values()].map(t => ({\n  record_type: 'team',\n  ...t,\n}));\n\n// Emit both league row and individual team rows\nreturn [\n  { json: leagueRow },\n  ...teamRows.map(r => ({ json: r }))\n];"
+      },
+      "id": "b210fd44-bad3-49a7-b988-2362db097657",
+      "name": "Calculate League & Team Rates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.record_type }}",
+              "value2": "team"
+            }
+          ]
+        }
+      },
+      "id": "6be2f7c7-e7bf-482e-b14d-15da33e9f1fd",
+      "name": "Split Record Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "team_strengths"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "team_key",
+              "condition": "eq",
+              "keyValue": "={{ $json.team_key }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        }
+      },
+      "id": "ff907b65-9d22-4977-943e-fa38324ef832",
+      "name": "Save Team Strengths",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "league_strengths"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "league_key",
+              "condition": "eq",
+              "keyValue": "={{ $json.league_key }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        }
+      },
+      "id": "7d2a51ac-5af4-4a3a-af52-4529c7952cda",
+      "name": "Save League Strengths",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "8eb559c7-fff4-447a-b5b1-1277fee11b77",
+      "name": "Wait for Both Saves",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Collate refresh statistics into one summary report\nconst settings = $('Data Settings').first().json;\nconst ratesData = $('Calculate League & Team Rates').all().map(item => item.json);\nconst leagueRow = ratesData.find(r => r.record_type === 'league') || {};\nconst teamRows = ratesData.filter(r => r.record_type === 'team');\n\nconst reportText = [\n  '⚽ FOOTBALL DATA REFRESH COMPLETE',\n  '',\n  'Competition: Premier League (League ' + settings.league_id + ')',\n  'Season: ' + settings.season + '/' + (settings.season + 1),\n  'Valid matches processed: ' + (leagueRow.matches_used || 0),\n  'Teams aggregated: ' + teamRows.length,\n  'League Home Average: ' + (Number(leagueRow.league_home_avg || 0).toFixed(2)) + ' goals/game',\n  'League Away Average: ' + (Number(leagueRow.league_away_avg || 0).toFixed(2)) + ' goals/game',\n  'Refresh Timestamp: ' + (leagueRow.updated_at || new Date().toISOString()),\n  '',\n  'Status: Historical team strengths and league averages stored successfully.'\n].join('\\n');\n\nreturn [{\n  json: {\n    report_text: reportText,\n    league_id: settings.league_id,\n    season: settings.season,\n    matches_used: leagueRow.matches_used,\n    team_count: teamRows.length,\n    league_home_avg: leagueRow.league_home_avg,\n    league_away_avg: leagueRow.league_away_avg,\n    updated_at: leagueRow.updated_at,\n    chat_id: 'REPLACE_WITH_TELEGRAM_CHAT_ID'\n  }\n}];"
+      },
+      "id": "26a8bbcd-2b2b-4bf4-9334-9bd9c6b5c971",
+      "name": "Build One Refresh Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.report_text }}",
+        "additionalFields": {}
+      },
+      "id": "653f09de-448c-4b41-b34a-1c7b0454ca81",
+      "name": "Data Refresh Report",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2760,
+        200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "credential-telegram-raskibot",
+          "name": "Raskibot Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Build sanitized failure report\nconst settings = $('Data Settings').first().json;\nreturn [{\n  json: {\n    error: 'API response was invalid, incomplete, or returned an error envelope.',\n    league_id: settings.league_id,\n    season: settings.season,\n    timestamp: new Date().toISOString(),\n  }\n}];"
+      },
+      "id": "03169d63-b5d2-4ec0-9056-0e9ec67c62ed",
+      "name": "Build Failure Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Start Data Refresh": {
+      "main": [
+        [
+          {
+            "node": "Data Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Settings": {
+      "main": [
+        [
+          {
+            "node": "Check Data Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Data Mode": {
+      "main": [
+        [
+          {
+            "node": "Load Mock Historical Fixtures",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Completed Fixtures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Mock Historical Fixtures": {
+      "main": [
+        [
+          {
+            "node": "API Response OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Completed Fixtures": {
+      "main": [
+        [
+          {
+            "node": "API Response OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API Response OK?": {
+      "main": [
+        [
+          {
+            "node": "Validate & Normalise History",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Failure Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Normalise History": {
+      "main": [
+        [
+          {
+            "node": "Calculate League & Team Rates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate League & Team Rates": {
+      "main": [
+        [
+          {
+            "node": "Split Record Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Record Type": {
+      "main": [
+        [
+          {
+            "node": "Save Team Strengths",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save League Strengths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Team Strengths": {
+      "main": [
+        [
+          {
+            "node": "Wait for Both Saves",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save League Strengths": {
+      "main": [
+        [
+          {
+            "node": "Wait for Both Saves",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Wait for Both Saves": {
+      "main": [
+        [
+          {
+            "node": "Build One Refresh Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build One Refresh Report": {
+      "main": [
+        [
+          {
+            "node": "Data Refresh Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "d08c254c-c3fb-4561-be25-65f4617b0f54",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

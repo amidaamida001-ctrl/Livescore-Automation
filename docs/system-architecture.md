@@ -10,6 +10,10 @@
 - **Docker Desktop and Docker Compose** run the existing local n8n installation.
 - **VS Code** contains the maintainable project source and documentation.
 
+## Proposed V1 execution scope
+
+The recommended V1 runs one `league_id` and `season` per execution. Both workflows use Manual Trigger during development; no schedule is enabled. This bounds API use, makes refreshes reviewable, and lets the prediction workflow read one league-season snapshot. These are recommendations awaiting owner approval, not deployed settings. The Docker and n8n environment was recovered and verified on 2026-11-12; see [environment-setup.md](environment-setup.md).
+
 ## Workflow A: Build Team Strengths
 
 1. Trigger a controlled refresh.
@@ -33,9 +37,11 @@
 8. Build the Telegram message, check `fixture_id + model_version` for a duplicate, send, and record prediction plus delivery status.
 9. Later retrieve the actual result and evaluate the stored prediction.
 
-The exact expected-goal factors, scoreline grid, omitted probability mass treatment, and evaluation fields remain unresolved. The mathematical baseline is documented for planning only; no calculations have been implemented.
+The expected-goal factor formulas are specified by the assignment and are listed in the [workflow blueprint](n8n-workflow-blueprint.md). The recommendation to use no smoothing, the relevant-venue sample threshold, grid tail tolerance, and evaluation policy are proposals awaiting approval; no calculations have been implemented.
 
 ## Proposed three-table data architecture
+
+The following are proposed V1 contracts, not created tables. The exact extended `prediction_log` requires owner approval before any table is created. n8n Data Table columns use String/Number types as shown; timestamps are stored as ISO-8601 UTC strings for consistent interchange. Composite keys are logical lookup keys, not database-enforced unique constraints.
 
 ### `team_strengths`
 
@@ -72,24 +78,65 @@ One row per composite key `league_id|season`. This third table is proposed becau
 
 ### `prediction_log`
 
-Intended matching key: `fixture_id + model_version`.
+Intended matching key: `prediction_key = String(fixture_id) + "|" + model_version`, equivalent to the required `fixture_id + model_version` pair. Retain the component columns for transparent queries. Upsert matching conditions do not enforce uniqueness under concurrency.
 
-| Field | Purpose |
-| --- | --- |
-| `fixture_id` | Numeric/source fixture identifier |
-| `model_version` | Identifies the calculation version |
-| `home_team` | Display label |
-| `away_team` | Display label |
-| `lambda_home` | Estimated home expected goals |
-| `lambda_away` | Estimated away expected goals |
-| `top_score` | Highest-ranked scoreline (representation to define) |
-| `home_win_prob` | Estimated home-win probability |
-| `draw_prob` | Estimated draw probability |
-| `away_win_prob` | Estimated away-win probability |
-| `status` | Prediction/delivery lifecycle status; values to define |
-| `predicted_at` | Prediction creation time |
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `prediction_key` | String | Derived `fixture_id|model_version` lookup key; not a unique constraint |
+| `fixture_id` | String | Source fixture ID normalized to string |
+| `model_version` | String | Immutable Poisson formula/policy version |
+| `league_id` | Number | Numeric competition identity |
+| `season` | Number | Season identity |
+| `league_name` | String | Competition label captured at prediction time |
+| `match_date` | String | Fixture kickoff timestamp in UTC |
+| `home_team_id` | Number | Numeric API identity for the home team |
+| `away_team_id` | Number | Numeric API identity for the away team |
+| `home_team` | String | Display name captured at prediction time |
+| `away_team` | String | Display name captured at prediction time |
+| `lambda_home` | Number | Home expected goals |
+| `lambda_away` | Number | Away expected goals |
+| `top_score` | String | Highest-ranked score, e.g. `1-0`; retained from original schema |
+| `top_scores_json` | String | JSON array of top three `{home_goals, away_goals, probability}` entries |
+| `home_win_prob` | Number | Unconditional probability fraction in [0,1] |
+| `draw_prob` | Number | Unconditional probability fraction in [0,1] |
+| `away_win_prob` | Number | Unconditional probability fraction in [0,1] |
+| `goal_max_home` | Number | Highest home-goal count included in the adaptive grid |
+| `goal_max_away` | Number | Highest away-goal count included in the adaptive grid |
+| `grid_mass` | Number | Total probability captured by the finite joint score grid |
+| `residual_prob` | Number | `1 - grid_mass`; omitted tail mass, never silently renormalized |
+| `home_team_strengths_updated_at` | String | Strength row timestamp used for the home team |
+| `away_team_strengths_updated_at` | String | Strength row timestamp used for the away team |
+| `league_strengths_updated_at` | String | League row timestamp used for the prediction |
+| `status` | String | `pending`, `sent`, or `failed` |
+| `predicted_at` | String | Prediction creation time (ISO-8601 UTC) |
+| `last_attempt_at` | String | Most recent Telegram attempt time |
+| `sent_at` | String | Telegram-confirmed delivery time; blank until sent |
+| `attempt_count` | Number | Number of Telegram attempts |
+| `telegram_message_id` | String | Telegram message ID when confirmed |
+| `error_message` | String | Sanitized delivery/reconciliation error; never credentials or headers |
+| `actual_home_goals` | Number | Final regulation-time home goals, blank until evaluation |
+| `actual_away_goals` | Number | Final regulation-time away goals, blank until evaluation |
+| `actual_match_status` | String | Actual fixture status used to accept or exclude its result |
+| `actual_outcome` | String | `home`, `draw`, or `away`, derived from accepted actual goals |
+| `actual_score_probability` | Number | Model probability assigned to the actual scoreline |
+| `brier_1x2` | Number | Candidate multiclass Brier score; leave blank until the finite-grid evaluation policy is approved |
+| `top3_hit` | Boolean | Whether the actual scoreline appears in `top_scores_json` |
+| `evaluated_at` | String | Evaluation timestamp (ISO-8601 UTC) |
 
-Prediction history enables a later join to actual outcomes. Actual goals/result fields and evaluation metrics are not included in the initial requested schema and must be designed before evaluation is built.
+`fixture_id` and `model_version` remain the deduplication components; `prediction_key` is a convenient derived lookup. Query both components with **All Conditions** or query the derived key. A Data Table Upsert does not guarantee atomic uniqueness. Keep prediction executions manual and non-overlapping in V1; after a Telegram timeout, preserve `pending` with a sanitized error and reconcile manually rather than automatically resending.
+
+The original requested `top_score` field is retained, while `top_scores_json` satisfies the top-three message requirement. Evaluation columns are reserved in this proposal but remain blank until the later evaluation stage. Confirm that the installed n8n Data Table version accepts blank/nullable Number and String fields before creating the table; do not encode fake numeric values as placeholders.
+
+## Proposed V1 data and model policies
+
+- **History selection:** proposed `FT` only with regulation-time goals. `AET` and `PEN` are excluded pending official field verification and explicit approval.
+- **Sample sufficiency:** proposed minimum 8 home appearances for the home team's home rates and 8 away appearances for the away team's away rates. Counts below those thresholds route to insufficient data without imputation.
+- **Smoothing:** proposed none. Zero appearances or a zero league average invalidates the relevant rate/league prediction; no fallback is invented. An observed zero goals numerator is valid and may produce a zero rate/expected-goal component.
+- **Probability grid:** keep 0-5 as the assignment baseline. Proposed adaptive grid increases independent home/away bounds until the joint `grid_mass >= 0.999999`; store `residual_prob = 1 - grid_mass` and do not silently renormalize.
+- **Delivery:** proposed `pending` before Telegram; update to `sent` after confirmation, `failed` after explicit failure. Ambiguous timeout remains `pending` for manual reconciliation. This improves the original send-then-save order and requires approval.
+- **Evaluation:** defer a third evaluation workflow. Keep actual-result/evaluation columns in the proposed prediction log contract for later use; only evaluate records created before kickoff and use the exact approved score target.
+
+These are recommendations, not approved assignment changes. The options, effects, and owner-approval checklist are in [design-decisions.md](design-decisions.md).
 
 ## Data safety and model principles
 

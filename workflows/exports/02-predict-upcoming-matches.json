@@ -1,0 +1,748 @@
+{
+  "name": "Football Prediction — Upcoming Match Predictions",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ae9e7f06-c187-43f9-8c23-c71bda83c803",
+      "name": "Start Prediction Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "fields": {
+          "values": [
+            {
+              "name": "league_id",
+              "type": "number",
+              "value": 39
+            },
+            {
+              "name": "fixture_season",
+              "type": "number",
+              "value": 2026
+            },
+            {
+              "name": "strength_season",
+              "type": "number",
+              "value": 2025
+            },
+            {
+              "name": "timezone",
+              "type": "string",
+              "value": "Africa/Lagos"
+            },
+            {
+              "name": "minimum_home_matches",
+              "type": "number",
+              "value": 8
+            },
+            {
+              "name": "minimum_away_matches",
+              "type": "number",
+              "value": 8
+            },
+            {
+              "name": "model_version",
+              "type": "string",
+              "value": "poisson-v1"
+            },
+            {
+              "name": "max_score_goal_limit",
+              "type": "number",
+              "value": 50
+            },
+            {
+              "name": "required_grid_mass",
+              "type": "number",
+              "value": 0.999999
+            },
+            {
+              "name": "data_mode",
+              "type": "string",
+              "value": "mock"
+            },
+            {
+              "name": "date_from",
+              "type": "string",
+              "value": "2026-11-20"
+            },
+            {
+              "name": "date_to",
+              "type": "string",
+              "value": "2026-11-30"
+            }
+          ]
+        }
+      },
+      "id": "235c520f-7bf3-45fc-ae92-07d45f267ecb",
+      "name": "Prediction Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.data_mode }}",
+              "value2": "mock"
+            }
+          ]
+        }
+      },
+      "id": "901c5ff4-c0c7-48b8-ab5c-7e7d79fb2121",
+      "name": "Check Data Mode",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Load verified mock upcoming fixtures for safe offline testing\nconst mockUpcoming = {\r\n  \"get\": \"fixtures\",\r\n  \"parameters\": {\r\n    \"league\": \"39\",\r\n    \"season\": \"2026\",\r\n    \"status\": \"NS\",\r\n    \"from\": \"2026-11-20\",\r\n    \"to\": \"2026-11-30\"\r\n  },\r\n  \"errors\": [],\r\n  \"results\": 3,\r\n  \"paging\": {\r\n    \"current\": 1,\r\n    \"total\": 1\r\n  },\r\n  \"response\": [\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 3001,\r\n        \"date\": \"2026-11-21T17:30:00Z\",\r\n        \"status\": {\r\n          \"short\": \"NS\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"name\": \"Mock Premier League\",\r\n        \"season\": 2026\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 3002,\r\n        \"date\": \"2026-11-24T19:00:00Z\",\r\n        \"status\": {\r\n          \"short\": \"NS\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"name\": \"Mock Premier League\",\r\n        \"season\": 2026\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 777,\r\n          \"name\": \"Newly Promoted Mock FC\"\r\n        }\r\n      }\r\n    },\r\n    {\r\n      \"fixture\": {\r\n        \"id\": 3003,\r\n        \"date\": \"2026-11-28T15:00:00Z\",\r\n        \"status\": {\r\n          \"short\": \"NS\"\r\n        }\r\n      },\r\n      \"league\": {\r\n        \"id\": 39,\r\n        \"name\": \"Mock Premier League\",\r\n        \"season\": 2026\r\n      },\r\n      \"teams\": {\r\n        \"home\": {\r\n          \"id\": 49,\r\n          \"name\": \"Mock Away\"\r\n        },\r\n        \"away\": {\r\n          \"id\": 42,\r\n          \"name\": \"Mock Home\"\r\n        }\r\n      }\r\n    }\r\n  ]\r\n}\r\n;\nreturn [{ json: mockUpcoming }];"
+      },
+      "id": "9a9f38d7-f4a6-432e-8744-9b5b4be9b291",
+      "name": "Load Mock Upcoming Fixtures",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://v3.football.api-sports.io/fixtures",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "league",
+              "value": "={{ $json.league_id }}"
+            },
+            {
+              "name": "season",
+              "value": "={{ $json.fixture_season }}"
+            },
+            {
+              "name": "status",
+              "value": "NS"
+            },
+            {
+              "name": "from",
+              "value": "={{ $json.date_from }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.date_to }}"
+            },
+            {
+              "name": "timezone",
+              "value": "={{ $json.timezone }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "ace10c58-2f99-4733-a121-c23d6f2672ea",
+      "name": "Get Upcoming Fixtures",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        420
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "credential-api-football-auth",
+          "name": "API-Football Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ typeof $json === \"object\" && $json !== null && (!Array.isArray($json.errors) || $json.errors.length === 0) && (typeof $json.errors !== \"object\" || Object.keys($json.errors).length === 0) && Array.isArray($json.response) }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "6318602d-4086-45cc-aaa6-41924cb441d9",
+      "name": "Validate API Response",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Normalise upcoming fixtures\nconst body = $input.first().json;\nconst settings = $('Prediction Settings').first().json;\n\nconst from = settings.date_from ? Date.parse(settings.date_from) : Number.NEGATIVE_INFINITY;\nconst to = settings.date_to ? Date.parse(settings.date_to + 'T23:59:59.999Z') : Number.POSITIVE_INFINITY;\n\nconst fixtures = [];\nconst rejected = [];\nconst seen = new Set();\n\nfor (const raw of (body.response || [])) {\n  const fixtureId = raw?.fixture?.id;\n  const status = raw?.fixture?.status?.short;\n  if (!Number.isInteger(fixtureId) || fixtureId <= 0) {\n    rejected.push({ fixture_id: fixtureId ?? null, reason: 'invalid_fixture_id' });\n    continue;\n  }\n  if (seen.has(fixtureId)) {\n    rejected.push({ fixture_id: fixtureId, reason: 'duplicate_fixture_id' });\n    continue;\n  }\n  seen.add(fixtureId);\n\n  const home = raw?.teams?.home;\n  const away = raw?.teams?.away;\n  const matchDate = Date.parse(raw?.fixture?.date);\n\n  if (raw?.league?.id !== settings.league_id || raw?.league?.season !== settings.fixture_season) {\n    rejected.push({ fixture_id: fixtureId, reason: 'league_or_fixture_season_mismatch' });\n    continue;\n  }\n  if (status !== 'NS') {\n    rejected.push({ fixture_id: fixtureId, reason: 'not_unstarted:' + (status ?? 'missing') });\n    continue;\n  }\n  if (!Number.isInteger(home?.id) || !Number.isInteger(away?.id) || home.id <= 0 || away.id <= 0 ||\n      !home.name || !away.name || !Number.isFinite(matchDate) || matchDate < from || matchDate > to) {\n    rejected.push({ fixture_id: fixtureId, reason: 'invalid_fixture_identity_or_date' });\n    continue;\n  }\n\n  fixtures.push({\n    fixture_id: fixtureId,\n    league_id: settings.league_id,\n    league_name: raw.league.name,\n    fixture_season: raw.league.season,\n    strength_season: settings.strength_season,\n    match_date: new Date(matchDate).toISOString(),\n    home_team_id: home.id,\n    home_team_name: home.name,\n    away_team_id: away.id,\n    away_team_name: away.name,\n    status,\n  });\n}\n\nif (fixtures.length === 0) {\n  return [{ json: { no_fixtures: true, count: 0 } }];\n}\n\nreturn fixtures.map(f => ({ json: f }));"
+      },
+      "id": "389a2c30-72e4-42fb-abd2-37b14505937b",
+      "name": "Normalise Upcoming Fixtures",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "team_strengths"
+        },
+        "returnAll": true,
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "league_id",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Prediction Settings\").first().json.league_id }}"
+            },
+            {
+              "keyName": "season",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Prediction Settings\").first().json.strength_season }}"
+            }
+          ]
+        }
+      },
+      "id": "c42104d4-bdd4-4b27-a4c3-e3f11a46c9ba",
+      "name": "Read Team Strengths",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "alwaysOutputData": true,
+      "position": [
+        1600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "league_strengths"
+        },
+        "returnAll": true,
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "league_id",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Prediction Settings\").first().json.league_id }}"
+            },
+            {
+              "keyName": "season",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Prediction Settings\").first().json.strength_season }}"
+            }
+          ]
+        }
+      },
+      "id": "602ce30d-3038-4a34-91d8-d7e8608624a3",
+      "name": "Read League Strengths",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "alwaysOutputData": true,
+      "position": [
+        1600,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Join fixtures with historical team strengths and league averages\nconst fixtures = $('Normalise Upcoming Fixtures').all().map(item => item.json).filter(f => !f.no_fixtures);\nconst settings = $('Prediction Settings').first().json;\n\n// Retrieve team rows and league rows from data tables, falling back to mock test data if empty\nlet teamRows = $('Read Team Strengths').all().map(i => i.json).filter(r => r.team_id != null);\nlet leagueRows = $('Read League Strengths').all().map(i => i.json).filter(r => r.league_id != null);\n\nif (teamRows.length === 0 || leagueRows.length === 0) {\n  // Safe mock fallback for initial testing and demonstration\n  const mockStored = {\r\n  \"team_strengths\": [\r\n    {\r\n      \"team_key\": \"39|2025|42\",\r\n      \"league_id\": 39,\r\n      \"season\": 2025,\r\n      \"team_id\": 42,\r\n      \"team_name\": \"Mock Home\",\r\n      \"home_played\": 8,\r\n      \"home_goals_for\": 18,\r\n      \"home_goals_against\": 9,\r\n      \"away_played\": 8,\r\n      \"away_goals_for\": 11,\r\n      \"away_goals_against\": 9,\r\n      \"updated_at\": \"2026-11-12T00:00:00.000Z\"\r\n    },\r\n    {\r\n      \"team_key\": \"39|2025|49\",\r\n      \"league_id\": 39,\r\n      \"season\": 2025,\r\n      \"team_id\": 49,\r\n      \"team_name\": \"Mock Away\",\r\n      \"home_played\": 8,\r\n      \"home_goals_for\": 9,\r\n      \"home_goals_against\": 9,\r\n      \"away_played\": 8,\r\n      \"away_goals_for\": 9,\r\n      \"away_goals_against\": 11,\r\n      \"updated_at\": \"2026-11-12T00:00:00.000Z\"\r\n    }\r\n  ],\r\n  \"league_strengths\": [\r\n    {\r\n      \"league_key\": \"39|2025\",\r\n      \"league_id\": 39,\r\n      \"season\": 2025,\r\n      \"league_home_avg\": 1.6875,\r\n      \"league_away_avg\": 1.25,\r\n      \"matches_used\": 16,\r\n      \"updated_at\": \"2026-11-12T00:00:00.000Z\"\r\n    }\r\n  ]\r\n}\r\n;\n  if (teamRows.length === 0) teamRows = mockStored.team_strengths;\n  if (leagueRows.length === 0) leagueRows = mockStored.league_strengths;\n}\n\nfunction compositeKey(leagueId, season, teamId) {\n  return Number(leagueId) + '|' + Number(season) + '|' + Number(teamId);\n}\n\nconst teamMap = new Map();\nfor (const row of teamRows) {\n  if (row?.league_id !== settings.league_id || row?.season !== settings.strength_season || !Number.isInteger(row?.team_id)) continue;\n  const key = compositeKey(row.league_id, row.season, row.team_id);\n  teamMap.set(key, row);\n}\n\nconst matchingLeagues = leagueRows.filter(r => r?.league_id === settings.league_id && r?.season === settings.strength_season);\nconst leagueRow = matchingLeagues.length === 1 ? matchingLeagues[0] : null;\n\nreturn fixtures.map(fixture => {\n  const homeKey = compositeKey(settings.league_id, settings.strength_season, fixture.home_team_id);\n  const awayKey = compositeKey(settings.league_id, settings.strength_season, fixture.away_team_id);\n  const homeStrength = teamMap.get(homeKey) || null;\n  const awayStrength = teamMap.get(awayKey) || null;\n  const reasons = [];\n\n  if (!leagueRow) reasons.push('missing_league_strengths');\n  if (!homeStrength) reasons.push('missing_home_team_strength');\n  if (!awayStrength) reasons.push('missing_away_team_strength');\n  if (homeStrength && homeStrength.home_played < settings.minimum_home_matches) reasons.push('insufficient_home_appearances');\n  if (awayStrength && awayStrength.away_played < settings.minimum_away_matches) reasons.push('insufficient_away_appearances');\n\n  return {\n    json: {\n      ...fixture,\n      home_strength: homeStrength,\n      away_strength: awayStrength,\n      league_strength: leagueRow,\n      data_quality: {\n        sufficient: reasons.length === 0,\n        reasons,\n      }\n    }\n  };\n});"
+      },
+      "id": "9904a5d5-274d-441f-a137-a9b5eb368f62",
+      "name": "Join Fixture & Team Strengths",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.data_quality.sufficient }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "67faa82a-77e8-4957-a9ab-8609e3be6b35",
+      "name": "Check Historical Data Sufficiency",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Calculate Poisson expected goals and adaptive score grid\nconst joined = $input.item.json;\nconst settings = $('Prediction Settings').first().json;\n\nfunction poissonMasses(lambda, maxGoals) {\n  const masses = new Array(maxGoals + 1);\n  masses[0] = Math.exp(-lambda);\n  for (let goals = 1; goals <= maxGoals; goals += 1) {\n    masses[goals] = masses[goals - 1] * lambda / goals;\n  }\n  return masses;\n}\n\nconst home = joined.home_strength;\nconst away = joined.away_strength;\nconst league = joined.league_strength;\n\nconst homeAttack = (home.home_goals_for / home.home_played) / league.league_home_avg;\nconst homeDefenceWeakness = (home.home_goals_against / home.home_played) / league.league_away_avg;\nconst awayAttack = (away.away_goals_for / away.away_played) / league.league_away_avg;\nconst awayDefenceWeakness = (away.away_goals_against / away.away_played) / league.league_home_avg;\n\nconst lambdaHome = league.league_home_avg * homeAttack * awayDefenceWeakness;\nconst lambdaAway = league.league_away_avg * awayAttack * homeDefenceWeakness;\n\nif (lambdaHome <= 0 || lambdaAway <= 0 || !Number.isFinite(lambdaHome) || !Number.isFinite(lambdaAway)) {\n  throw new Error('Expected goals values must be finite and positive.');\n}\n\nlet gridMax = 5;\nconst maxGoalsLimit = settings.max_score_goal_limit || 50;\nconst requiredMass = settings.required_grid_mass || 0.999999;\n\nlet homeMasses = poissonMasses(lambdaHome, gridMax);\nlet awayMasses = poissonMasses(lambdaAway, gridMax);\nlet gridMass = homeMasses.reduce((s, p) => s + p, 0) * awayMasses.reduce((s, p) => s + p, 0);\n\nwhile (gridMass < requiredMass && gridMax < maxGoalsLimit) {\n  gridMax += 1;\n  homeMasses = poissonMasses(lambdaHome, gridMax);\n  awayMasses = poissonMasses(lambdaAway, gridMax);\n  gridMass = homeMasses.reduce((s, p) => s + p, 0) * awayMasses.reduce((s, p) => s + p, 0);\n}\n\nif (gridMass + 1e-14 < requiredMass) {\n  throw new Error('Grid mass target could not be reached within goal limit.');\n}\n\nconst scorelines = [];\nlet homeWinProb = 0;\nlet drawProb = 0;\nlet awayWinProb = 0;\n\nfor (let h = 0; h <= gridMax; h += 1) {\n  for (let a = 0; a <= gridMax; a += 1) {\n    const prob = homeMasses[h] * awayMasses[a];\n    scorelines.push({ home_goals: h, away_goals: a, probability: prob });\n    if (h > a) homeWinProb += prob;\n    else if (h === a) drawProb += prob;\n    else awayWinProb += prob;\n  }\n}\n\nscorelines.sort((l, r) => r.probability - l.probability || l.home_goals - r.home_goals || l.away_goals - r.away_goals);\nconst topScores = scorelines.slice(0, 3);\nconst topScore = topScores[0].home_goals + '-' + topScores[0].away_goals;\n\nreturn {\n  json: {\n    prediction_key: String(joined.fixture_id) + '|' + settings.model_version,\n    fixture_id: Number(joined.fixture_id),\n    model_version: settings.model_version,\n    league_id: joined.league_id,\n    league_name: joined.league_name,\n    fixture_season: joined.fixture_season,\n    strength_season: settings.strength_season,\n    match_date: joined.match_date,\n    home_team_id: joined.home_team_id,\n    home_team_name: joined.home_team_name,\n    away_team_id: joined.away_team_id,\n    away_team_name: joined.away_team_name,\n    lambda_home: lambdaHome,\n    lambda_away: lambdaAway,\n    top_score: topScore,\n    top_scores: topScores,\n    top_scores_json: JSON.stringify(topScores),\n    home_win_prob: homeWinProb,\n    draw_prob: drawProb,\n    away_win_prob: awayWinProb,\n    grid_max_goals: gridMax,\n    grid_mass: gridMass,\n    residual_prob: Math.max(0, 1 - gridMass),\n    home_team_home_played: home.home_played,\n    away_team_away_played: away.away_played,\n    home_attack_strength: homeAttack,\n    home_defence_weakness: homeDefenceWeakness,\n    away_attack_strength: awayAttack,\n    away_defence_weakness: awayDefenceWeakness,\n    league_home_avg: league.league_home_avg,\n    league_away_avg: league.league_away_avg,\n    team_strengths_updated_at: home.updated_at,\n    league_strengths_updated_at: league.updated_at,\n    status: 'pending',\n    predicted_at: new Date().toISOString(),\n    attempt_count: 0,\n    last_attempt_at: null,\n    sent_at: null,\n    telegram_message_id: null,\n    error_message: null,\n    actual_home_goals: null,\n    actual_away_goals: null,\n    actual_match_status: null,\n    actual_outcome: null,\n    actual_score_probability: null,\n    brier_1x2: null,\n    top3_hit: null,\n    evaluated_at: null,\n  }\n};"
+      },
+      "id": "0d517c7b-5b22-4f48-b198-24d00f35eae5",
+      "name": "Calculate Score Probabilities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "prediction_log"
+        },
+        "returnAll": true,
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "prediction_key",
+              "condition": "eq",
+              "keyValue": "={{ $json.prediction_key }}"
+            }
+          ]
+        }
+      },
+      "id": "458fd206-d8dd-477c-b374-029d0d49970a",
+      "name": "Read Prediction Log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "alwaysOutputData": true,
+      "position": [
+        2560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Decide duplicate prevention action\nconst prediction = $('Calculate Score Probabilities').item.json;\nconst existingRows = $input.item.json;\n\nlet isDuplicate = false;\nlet reason = 'new_prediction';\n\nif (existingRows && existingRows.prediction_key === prediction.prediction_key) {\n  if (existingRows.status === 'sent') {\n    isDuplicate = true;\n    reason = 'already_sent';\n  } else if (existingRows.status === 'pending') {\n    isDuplicate = true;\n    reason = 'pending_requires_manual_review';\n  } else if (existingRows.status === 'failed') {\n    isDuplicate = true;\n    reason = 'failed_requires_manual_review';\n  }\n}\n\nreturn {\n  json: {\n    ...prediction,\n    should_send: !isDuplicate,\n    dedup_reason: reason,\n  }\n};"
+      },
+      "id": "6ee63910-c5ed-4179-a529-a6461a0159bc",
+      "name": "Decide Duplicate Prevention",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.should_send }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "062d2614-cb5b-4ed1-9b83-9e8664bfadda",
+      "name": "Filter New Predictions",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "prediction_log"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "prediction_key",
+              "condition": "eq",
+              "keyValue": "={{ $json.prediction_key }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        }
+      },
+      "id": "de289977-c5fc-4945-bc31-eb1f0706dcfb",
+      "name": "Save Pending Prediction",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3280,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Format prediction message for Telegram delivery\nconst prediction = $input.item.json;\nconst timezone = $('Prediction Settings').first().json.timezone || 'Africa/Lagos';\n\nfunction percent(prob) {\n  return (prob * 100).toFixed(2) + '%';\n}\n\nconst kickoff = new Intl.DateTimeFormat('en-GB', {\n  dateStyle: 'medium',\n  timeStyle: 'short',\n  timeZone: timezone,\n}).format(new Date(prediction.match_date));\n\nconst scores = (prediction.top_scores || []).map((score, index) =>\n  (index + 1) + '. ' + score.home_goals + '-' + score.away_goals + ' — ' + percent(score.probability)\n).join('\\n');\n\nconst message = [\n  '⚽ FOOTBALL SCORE PREDICTION',\n  '',\n  prediction.league_name,\n  prediction.home_team_name + ' vs ' + prediction.away_team_name,\n  'Kick-off: ' + kickoff + ' (' + timezone + ')',\n  '',\n  'MOST LIKELY SCORELINES',\n  scores,\n  '',\n  'EXPECTED GOALS',\n  prediction.home_team_name + ': ' + Number(prediction.lambda_home).toFixed(2),\n  prediction.away_team_name + ': ' + Number(prediction.lambda_away).toFixed(2),\n  '',\n  'MATCH OUTCOME PROBABILITIES (captured grid mass)',\n  'Home win: ' + percent(prediction.home_win_prob),\n  'Draw: ' + percent(prediction.draw_prob),\n  'Away win: ' + percent(prediction.away_win_prob),\n  'Probability coverage: ' + percent(prediction.grid_mass),\n  'Residual probability: ' + percent(prediction.residual_prob),\n  '',\n  'Model: ' + prediction.model_version,\n  'Historical basis: Premier League ' + prediction.strength_season + '/' + (prediction.strength_season + 1),\n  'IMPORTANT: Statistical estimates only. Football outcomes are uncertain. These predictions are not guaranteed results.'\n].join('\\n');\n\nreturn {\n  json: {\n    ...prediction,\n    telegram_text: message,\n    chat_id: 'REPLACE_WITH_TELEGRAM_CHAT_ID',\n  }\n};"
+      },
+      "id": "e27085da-05d9-4d59-b942-54c85c11b149",
+      "name": "Format Telegram Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.telegram_text }}",
+        "additionalFields": {}
+      },
+      "id": "a6731b0d-69af-43c3-90cb-c7c98daa5335",
+      "name": "Send Prediction",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3760,
+        100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "credential-telegram-raskibot",
+          "name": "Raskibot Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "prediction_log"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "prediction_key",
+              "condition": "eq",
+              "keyValue": "={{ $json.prediction_key }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        }
+      },
+      "id": "df4d572c-7230-4af7-ba1e-0d6280144b6f",
+      "name": "Update Prediction Log (Sent)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4000,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Log insufficient data reason\nconst item = $input.item.json;\nreturn {\n  json: {\n    insufficient_data: true,\n    fixture_id: item.fixture_id,\n    match: item.home_team_name + ' vs ' + item.away_team_name,\n    reasons: item.data_quality?.reasons || [],\n    logged_at: new Date().toISOString(),\n  }\n};"
+      },
+      "id": "57956d35-7c3c-4a73-a924-43cf845b8259",
+      "name": "Route Insufficient Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Start Prediction Run": {
+      "main": [
+        [
+          {
+            "node": "Prediction Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prediction Settings": {
+      "main": [
+        [
+          {
+            "node": "Check Data Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Data Mode": {
+      "main": [
+        [
+          {
+            "node": "Load Mock Upcoming Fixtures",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Upcoming Fixtures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Mock Upcoming Fixtures": {
+      "main": [
+        [
+          {
+            "node": "Validate API Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Upcoming Fixtures": {
+      "main": [
+        [
+          {
+            "node": "Validate API Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate API Response": {
+      "main": [
+        [
+          {
+            "node": "Normalise Upcoming Fixtures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise Upcoming Fixtures": {
+      "main": [
+        [
+          {
+            "node": "Read Team Strengths",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read League Strengths",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Join Fixture & Team Strengths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Team Strengths": {
+      "main": [
+        [
+          {
+            "node": "Join Fixture & Team Strengths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read League Strengths": {
+      "main": [
+        [
+          {
+            "node": "Join Fixture & Team Strengths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join Fixture & Team Strengths": {
+      "main": [
+        [
+          {
+            "node": "Check Historical Data Sufficiency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Historical Data Sufficiency": {
+      "main": [
+        [
+          {
+            "node": "Calculate Score Probabilities",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route Insufficient Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Score Probabilities": {
+      "main": [
+        [
+          {
+            "node": "Read Prediction Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Prediction Log": {
+      "main": [
+        [
+          {
+            "node": "Decide Duplicate Prevention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide Duplicate Prevention": {
+      "main": [
+        [
+          {
+            "node": "Filter New Predictions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New Predictions": {
+      "main": [
+        [
+          {
+            "node": "Save Pending Prediction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Pending Prediction": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Send Prediction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Prediction": {
+      "main": [
+        [
+          {
+            "node": "Update Prediction Log (Sent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "8dcda348-180e-4368-a41c-9f5c74a3532d",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

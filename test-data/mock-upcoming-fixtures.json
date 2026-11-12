@@ -1,0 +1,90 @@
+{
+  "get": "fixtures",
+  "parameters": {
+    "league": "39",
+    "season": "2026",
+    "status": "NS",
+    "from": "2026-11-20",
+    "to": "2026-11-30"
+  },
+  "errors": [],
+  "results": 3,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "fixture": {
+        "id": 3001,
+        "date": "2026-11-21T17:30:00Z",
+        "status": {
+          "short": "NS"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Mock Premier League",
+        "season": 2026
+      },
+      "teams": {
+        "home": {
+          "id": 42,
+          "name": "Mock Home"
+        },
+        "away": {
+          "id": 49,
+          "name": "Mock Away"
+        }
+      }
+    },
+    {
+      "fixture": {
+        "id": 3002,
+        "date": "2026-11-24T19:00:00Z",
+        "status": {
+          "short": "NS"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Mock Premier League",
+        "season": 2026
+      },
+      "teams": {
+        "home": {
+          "id": 42,
+          "name": "Mock Home"
+        },
+        "away": {
+          "id": 777,
+          "name": "Newly Promoted Mock FC"
+        }
+      }
+    },
+    {
+      "fixture": {
+        "id": 3003,
+        "date": "2026-11-28T15:00:00Z",
+        "status": {
+          "short": "NS"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Mock Premier League",
+        "season": 2026
+      },
+      "teams": {
+        "home": {
+          "id": 49,
+          "name": "Mock Away"
+        },
+        "away": {
+          "id": 42,
+          "name": "Mock Home"
+        }
+      }
+    }
+  ]
+}
