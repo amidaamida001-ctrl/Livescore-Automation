@@ -2,8 +2,15 @@
 
 **Project:** Football Score Prediction Automation V1
 **Provider:** API-Football (v3.football.api-sports.io)
-**Plan:** Free Tier (100 requests/day)
+**Expected Plan:** Free Tier (100 requests/day; runtime plan not confirmed)
 **Timezone:** Africa/Lagos
+
+## Runtime verification status (2026-11-14)
+
+- `API-Football Header Auth` appears as a credential reference in the repository exports; its existence in the n8n credential store was not verified. No credential value was viewed.
+- A runtime log reported that an exported workflow credential reference ID did not exist. This does not establish whether a credential with the expected name exists under another runtime ID.
+- The API diagnostics workflow was not executed. No `/status` call, historical fixture request, or upcoming-fixture request was made in this phase.
+- The Free plan, request allowance, and season-2025/season-2026 data availability remain configuration targets, not live-confirmed facts.
 
 ---
 

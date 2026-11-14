@@ -2,14 +2,30 @@
 
 **Project:** Football Score Prediction Automation V1
 **Test Framework:** Node.js Native Test Runner (`node:test`, `node:assert/strict`)
-**Date:** November 2026
-**Overall Status:** PASS (100% Suites Passing, 0 Failures)
+**Date:** 2026-11-14
+**Overall Status:** PASS for local JavaScript/export checks; BLOCKED for n8n runtime end-to-end validation
 
 ---
 
 ## 1. Executive Summary
 
-All core JavaScript transformation, statistical calculation, deduplication, state machine, and workflow structural contracts have been verified locally using deterministic unit and integration test suites.
+All nine local Node.js test files passed (35/35 tests). Workflow JSON and source/export schema contracts also passed static validation. This does not establish that workflows were imported with the exported content, that Data Tables exist, or that either workflow executed in n8n.
+
+### Runtime evidence and validation boundary
+
+| Validation layer | Result |
+|---|---|
+| Docker container/version | `livescore-n8n` was running `docker.n8n.io/n8nio/n8n:2.46.7`. |
+| Health endpoint | `http://localhost:5678/healthz` returned HTTP 200 (`{"status":"ok"}`) on 2026-11-14. |
+| n8n UI | Dashboard displayed four workflows and 0 production executions / 0 failed production executions at inspection. Workflow and Data Tables views stalled. |
+| Database stability | **Blocked:** recent logs reported SQLite write-mutex timeouts and database ping failures. |
+| Installed workflows | Exact IDs, node counts, active state, credentials, and execution history were not verified. Export node counts are 8/15/20/3; all exports are inactive. |
+| Data Tables | **Not verified or initialized.** Existence, actual schemas, and row counts are unknown. |
+| Workflow A/B in n8n | **Not executed.** No n8n node outputs or stored test rows were produced in this phase. |
+| API-Football | No diagnostics or fixture requests were sent; credential presence, plan, quota, and data availability remain unverified. |
+| Telegram | No message was sent; credential presence and delivery are unverified. |
+
+The existing mock paths are unsafe for production execution: Workflow A writes mock strengths to `team_strengths`/`league_strengths` and reaches a Telegram node; Workflow B reads and writes production table names and reaches a Telegram node. Isolated test tables/workflow copies and a no-send notification path are prerequisites to n8n mock execution.
 
 | Test Suite File | Tests | Pass | Fail | Scope Covered |
 |---|---|---|---|---|
@@ -18,11 +34,11 @@ All core JavaScript transformation, statistical calculation, deduplication, stat
 | `tests/test-team-strengths.js` | 2 | 2 | 0 | Goal totals, appearance counts, venue averages |
 | `tests/test-poisson.js` | 2 | 2 | 0 | Expected goals, adaptive Poisson grid, edge cases |
 | `tests/test-deduplication.js` | 3 | 3 | 0 | Duplicate prevention, sequential state transitions |
-| `tests/test-workflow-scenarios.js` | 1 | 1 | 0 | End-to-end Workflow A to B integration pipeline |
+| `tests/test-workflow-scenarios.js` | 1 | 1 | 0 | Source-level A calculations and B join using stored mock strengths |
 | `tests/test-api-budget.js` | 1 | 1 | 0 | Request budget and quota protection calculations |
 | `tests/test-table-schemas.js` | 1 | 1 | 0 | Schema contract verification for all 3 Data Tables |
 | `tests/test-workflow-exports.js` | 1 | 1 | 0 | Structural integrity of exported n8n workflow JSONs |
-| **Total** | **35** | **35** | **0** | **Full System V1 Test Coverage** |
+| **Total** | **35** | **35** | **0** | **Local regression test coverage** |
 
 ---
 
@@ -78,8 +94,31 @@ Using the assignment's explicit test parameters:
 ### Model Output in Test J:
 - Computed $\lambda_{\text{home}} = 1.920000000000$ (Difference from 1.92: $< 10^{-12}$)
 - Computed $\lambda_{\text{away}} = 0.981818181818$ (Difference from ~0.98: $< 10^{-12}$)
-- Captured Grid Mass: $0.999999124 \ge 0.999999$
-- Residual Probability: $0.000000876$
+- Captured Grid Mass: $0.9999990999304164 \ge 0.999999$
+- Residual Probability: $0.0000009000695836425265$
 - Outcome Mass: $\text{Home Win} + \text{Draw} + \text{Away Win} = \text{Grid Mass}$
-- Top 3 Scorelines: Ranked descending by probability.
-- **Hand-check benchmark: VERIFIED AND CONFIRMED.**
+- Top 3 Scorelines: `1-0`, `1-1`, `2-0`, ranked by probability.
+- The outcome total equals grid mass within floating-point tolerance; the implementation does not renormalize probabilities to 1.
+- **Source-code benchmark: VERIFIED.** This is a local JavaScript calculation, not an n8n execution.
+
+## 4. Workflow export and schema checks
+
+- All four export files parsed as JSON; all connection sources and targets resolve to exported node names.
+- Export node counts: setup 8, Workflow A 15, Workflow B 20, API diagnostics 3. Each export is inactive by default.
+- Source schemas match the setup export exactly: `team_strengths` 12 columns, `league_strengths` 7, `prediction_log` 47, including `fixture_season`, `strength_season`, `match_date`, and `attempt_count`.
+- These are repository checks only. Import compatibility in the live n8n editor, installed-workflow equivalence, and actual Data Table schemas remain unverified.
+
+### Mock-history calculation from JavaScript source (not persisted)
+
+- Normalization accepted 16 of 21 mock fixtures and rejected 5 (including AET, PEN, duplicate ID, and invalid score cases).
+- Aggregation produced 2 team rows and one league row: `matches_used=16`, `league_home_avg=1.6875`, and `league_away_avg=1.25`.
+- Team 42: home 8 matches, 18 scored, 9 conceded; away 8 matches, 11 scored, 9 conceded.
+- Team 49: home 8 matches, 9 scored, 11 conceded; away 8 matches, 9 scored, 18 conceded.
+- These values are code-level expected results only. Zero rows were written to n8n test or production tables in this phase.
+
+## 5. Required next validation
+
+1. Resolve the n8n database lock/timeouts using supported n8n operations without recreating the container, deleting the volume, or modifying SQLite directly.
+2. Verify workflow IDs, node counts, activation state, execution history, credential names, and actual Data Table columns in the UI.
+3. Create isolated test tables and test workflow copies; route mock writes only to those tables and suppress Telegram delivery.
+4. Execute the complete Workflow A -> test Data Tables -> Workflow B path, inspect node outputs and persisted rows, then update this report with observed results.

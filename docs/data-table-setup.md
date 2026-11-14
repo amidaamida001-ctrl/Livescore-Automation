@@ -134,18 +134,17 @@ Complete immutable prediction log and state-tracking table with 47 custom column
 
 ## 3. Creating the Tables via n8n
 
-### Automated Workflow Execution
-The workflow **SETUP - Create Prediction Data Tables** is already imported into the local n8n instance:
-- **Workflow ID:** `oHkt8a5sIiohn5jr`
-- **Workflow Export:** `workflows/exports/00-setup-data-tables.json`
+### Setup workflow export
+
+The repository export is `workflows/exports/00-setup-data-tables.json` (8 nodes). The n8n dashboard showed four workflows during the 2026-11-14 inspection, but the setup workflow's installed ID and current state were not verified because the workflow view stalled.
+
+The export lists existing tables, compares custom column names and types with the expected schemas, and stops before creation if an existing table conflicts. It then uses `createIfNotExists` for each expected table. Source schemas match the export exactly: `team_strengths` 12 columns, `league_strengths` 7 columns, and `prediction_log` 47 columns. The canonical prediction fields include `fixture_season`, `strength_season`, `match_date`, and `attempt_count`.
+
+**Runtime result:** No Data Table was inspected or initialized in this phase. n8n logs showed SQLite lock/database timeouts and the Data Tables view did not load. The actual presence, schemas, and row counts of the three tables are unknown. Do not run setup until the runtime is stable and existing tables have been inspected.
 
 ### Step-by-Step Operator Instructions
-1. Open the n8n web editor in your browser: `http://localhost:5678`
-2. Navigate to **Workflows** in the left sidebar.
-3. Select **SETUP - Create Prediction Data Tables**.
-4. Click the orange **Test workflow** button in the bottom canvas bar.
-5. The workflow executes sequentially:
-   - Queries existing tables to ensure no duplicate or incompatible schema exists.
-   - Executes `n8n-nodes-base.dataTable` with `operation: "create"` and `createIfNotExists: true` for `team_strengths`, `league_strengths`, and `prediction_log`.
-   - Runs a schema verification step confirming 12, 7, and 47 columns respectively.
-6. Once green checkmarks appear on all nodes, your tables are verified and ready for production use.
+1. Confirm the existing n8n container and database are healthy and the Data Tables screen loads.
+2. Inspect all three table names, custom columns, types, and row counts; preserve existing data.
+3. If an existing table's schema differs, stop and resolve the discrepancy without deleting it.
+4. If tables are missing and the preflight is safe, run **SETUP - Create Prediction Data Tables**.
+5. Reopen each table in the Data Tables UI and verify its actual custom columns and types. Do not infer this from a green workflow execution alone.

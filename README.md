@@ -53,13 +53,16 @@ flowchart LR
 ## Verified System Status
 
 - **Docker Environment:** Docker Desktop on Windows 11 + WSL2.
-- **n8n Engine:** n8n Community Edition `2.46.7` running on `http://localhost:5678`.
+- **n8n Engine:** Container `livescore-n8n`, image/version `2.46.7`, running at `http://localhost:5678`; `/healthz` returned HTTP 200 on 2026-11-14.
 - **Target Competition:** English Premier League (League `39`).
 - **Historical Season (Workflow A):** `2025` (2025/2026 season data).
 - **Upcoming Prediction Season (Workflow B):** `2026` (2026/2027 fixtures).
-- **Persistence Engine:** 3 native n8n Data Tables (`team_strengths`, `league_strengths`, `prediction_log`).
-- **Automated Test Suites:** 35 passing automated tests across 9 test files (100% pass rate).
-- **Workflows Installed:** 4 active workflows imported into n8n and exported under `workflows/exports/`.
+- **Local Automated Tests:** 35 passing tests across 9 files. This verifies JavaScript behavior and workflow-export structure, not n8n execution.
+- **Workflow Exports:** Four valid, inactive JSON exports with 8, 15, 20, and 3 nodes. The n8n dashboard showed 4 workflows, but installed IDs, per-workflow node counts, active state, and execution history were not verified.
+- **Data Tables:** Source and setup-export contracts define 12, 7, and 47 custom columns. Actual n8n table existence, schemas, and row counts were not verified.
+- **Runtime Blocker:** n8n logs reported SQLite write-lock timeouts and database ping failures. Workflow and Data Table UI views stalled; no workflow was run and no table was initialized.
+- **Mock Safety:** Existing mock paths are not isolated: Workflow A writes to production table names and reaches a Telegram node; Workflow B reads/writes production tables and reaches a Telegram node. Do not execute these mock paths until test-only tables/workflow copies and a no-send notification path are in place.
+- **Live Integrations:** No API-Football request or Telegram message was sent. Credential presence and live data availability remain unverified.
 
 ---
 
@@ -148,16 +151,14 @@ Visit `http://localhost:5678` in your browser.
 
 ### 2. Run Automated Tests
 ```powershell
-node tests/test-scenarios-a-to-t.js
+node --test
 node tests/test-workflow-exports.js
 ```
 
 ### 3. Initialize Tables in n8n
-In n8n (`http://localhost:5678`), open **SETUP - Create Prediction Data Tables** and click **Test workflow**.
+Do not run setup until n8n database access is stable and the current tables have been inspected in the UI. The setup workflow export preflights existing schemas and uses create-if-missing operations, but no runtime tables were inspected or initialized in this phase.
 
 ### 4. Run Prediction Automation
-- Open **Football Prediction — Build Team Strengths** and click **Test workflow**.
-- Open **Football Prediction — Upcoming Match Predictions** and click **Test workflow**.
-*(Both workflows default to `data_mode = 'mock'` so you can test them immediately without external API keys or Telegram tokens).*
+Do not execute the existing Workflow A or B in mock mode yet. Their current mock branches write to production Data Tables, and the Telegram nodes are not disabled for mock runs. First create isolated test tables/workflow copies (or add an explicit no-send test branch), then validate the whole mock pipeline.
 
 For full instructions on configuring live API keys and Telegram credentials, see [docs/implementation-guide.md](docs/implementation-guide.md).

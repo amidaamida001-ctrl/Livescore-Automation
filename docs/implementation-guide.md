@@ -40,9 +40,9 @@ docker compose down
 
 ## 2. Workflows Overview
 
-All four workflows are already imported into your n8n instance:
+The repository contains four workflow exports. On 2026-11-14 the n8n dashboard displayed a total of four workflows, but the workflow views stalled during inspection. Consequently, installed IDs, node counts, activation state, execution history, and credential assignments have not been verified. IDs below are historical references only, not current runtime evidence.
 
-| Workflow Name | Workflow ID | Purpose | Trigger |
+| Workflow Name | Historical ID (unverified) | Purpose | Trigger |
 |---|---|---|---|
 | **SETUP - Create Prediction Data Tables** | `oHkt8a5sIiohn5jr` | Creates the 3 Data Tables with exact 12, 7, and 47 column schemas. | Manual |
 | **Football Prediction — Build Team Strengths** | `wqUPBW36wz5ZN5MV` | Calculates 2025/2026 team attack/defence strengths and league averages. | Manual |
@@ -53,36 +53,39 @@ Exports are stored under `workflows/exports/` for Git versioning and backups.
 
 ---
 
+Runtime inspection confirmed the container image/version and `/healthz`, but logs reported SQLite write-lock timeouts and database ping failures. No workflow was executed, no Data Table was inspected or initialized, and no API request or Telegram message was sent.
+
 ## 3. Operational Step-by-Step Runbook
 
-### Step 1: Run the Database Setup Workflow
-1. In `http://localhost:5678`, open **SETUP - Create Prediction Data Tables**.
-2. Click **Test workflow**.
-3. All nodes will execute with green checkmarks.
-4. Verify under the **Data Tables** section in n8n that `team_strengths`, `league_strengths`, and `prediction_log` are created.
+> **Do not execute the setup or mock workflows yet.** The current runtime reports database-lock errors, and the mock branches are not isolated: Workflow A writes mock records to the production strength tables and reaches Telegram; Workflow B reads/writes production tables and reaches Telegram. First restore database access, inspect existing production data, create exact-schema test tables and workflow copies, and disable Telegram delivery in those copies.
+
+### Step 1: Database setup (wait for runtime recovery)
+1. Wait until the editor and Data Tables screens load normally and database errors have stopped.
+2. Inspect existing table names, schemas, and row counts; preserve all existing data.
+3. If tables are missing and no schema conflict exists, run **SETUP - Create Prediction Data Tables**.
+4. Verify actual custom columns and types for all three tables in the Data Tables UI.
 
 ### Step 2: Configure API-Football Credential (for Live Mode)
-*(When running in default `mock` mode, no API credentials or requests are needed).*
 1. Navigate to **Credentials** -> **Add Credential** -> **Header Auth**.
 2. Name: `API-Football Header Auth`
 3. Header Name: `x-apisports-key`
 4. Value: `<Your API-Sports Key>`
 5. Click **Save**.
 
-### Step 3: Run Workflow Diagnostics
+### Step 3: API diagnostics (not run in this phase)
 1. Open **Football Prediction — Verify API Access**.
-2. Click **Test workflow**.
+2. Only run this after verifying the named credential; it makes a live API status request.
 3. Inspect output to confirm subscription plan and request quota.
 
-### Step 4: Run Workflow A (Build Team Strengths)
+### Step 4: Workflow A (requires isolated test tables)
 1. Open **Football Prediction — Build Team Strengths**.
 2. Notice the node **Data Settings**:
    - `data_mode`: Set to `"mock"` (default) for verified offline execution, or change to `"live"` to pull real fixtures from API-Football.
    - `season`: `2025`
    - `league_id`: `39`
-3. Click **Test workflow**.
-4. The workflow validates completed FT fixtures, calculates league home/away averages and team strengths, and upserts them into `team_strengths` and `league_strengths`.
-5. It compiles a single refresh summary report.
+3. Do not execute the production workflow in mock mode; its mock records are written to the production Data Tables.
+4. In an isolated test copy, verify completed FT fixture filtering and the calculated aggregates against the source-level expected values in [testing-report.md](testing-report.md).
+5. Confirm the test copy writes only to test tables and does not invoke Telegram.
 
 ### Step 5: Configure Telegram Bot (for Prediction Delivery)
 1. In Telegram, search for `@BotFather` and create a bot (or use your existing bot token).
@@ -93,24 +96,15 @@ Exports are stored under `workflows/exports/` for Git versioning and backups.
 6. Access Token: Paste your bot token and save.
 7. In **Football Prediction — Upcoming Match Predictions**, edit the node **Format Telegram Message** to set `chat_id: '<Your Numeric Chat ID>'`.
 
-### Step 6: Run Workflow B (Predict Upcoming Matches)
+### Step 6: Workflow B (requires isolated test tables)
 1. Open **Football Prediction — Upcoming Match Predictions**.
 2. Review **Prediction Settings**:
    - `fixture_season`: `2026`
    - `strength_season`: `2025`
    - `data_mode`: `"mock"` (or `"live"`)
    - `date_from` and `date_to`: Upcoming match window.
-3. Click **Test workflow**.
-4. The engine will:
-   - Normalize upcoming fixtures.
-   - Join with historical team strengths by numeric team IDs.
-   - Validate that each team has $\ge 8$ appearances. Any team with insufficient samples is routed to the insufficient-data branch without guessing.
-   - Compute expected goals ($\lambda_{\text{home}}, \lambda_{\text{away}}$).
-   - Compute Poisson probabilities across an adaptive grid (up to 50 goals per side) until $\ge 99.9999\%$ of the probability mass is captured.
-   - Check `prediction_log` to ensure no duplicate prediction is ever sent.
-   - Save the record as `pending`.
-   - Dispatch the prediction to Telegram.
-   - Update the record status to `sent` with the Telegram message ID and timestamp.
+3. Do not execute the production workflow in mock mode; it reads/writes production Data Tables and has a Telegram send path.
+4. In an isolated test copy, confirm Workflow B reads the rows written by the test copy of Workflow A, writes only to `prediction_log_test`, and leaves new predictions pending. Do not dispatch Telegram or create a message ID for mock data.
 
 ---
 
